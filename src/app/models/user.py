@@ -1,7 +1,7 @@
 import uuid as uuid_pkg
 
-from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import Mapped, Relationship, mapped_column, relationship
 
 from ..core.db.database import Base
 from ..core.models.mixins import (
@@ -9,6 +9,18 @@ from ..core.models.mixins import (
     SoftDeleteMixin,
     TimestampMixin,
     UUIDMixin,
+)
+from .purchase_category import PurchaseCategory
+
+association_table_user_purchase_category = Table(
+    "association_user_purchase_category",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("user.id"), primary_key=True),
+    Column(
+        "purchase_category_id",
+        ForeignKey("purchase_category.id"),
+        primary_key=True,
+    ),
 )
 
 
@@ -27,4 +39,8 @@ class User(
     )
     tier_uuid: Mapped[uuid_pkg.UUID | None] = mapped_column(
         index=True, default=None
+    )
+
+    purchase_categories: Relationship[PurchaseCategory] = relationship(
+        secondary=association_table_user_purchase_category
     )
