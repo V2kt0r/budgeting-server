@@ -11,6 +11,7 @@ from ..core.models.mixins import (
     UUIDMixin,
 )
 from .purchase_category import PurchaseCategory
+from .tag import Tag
 
 association_table_user_purchase_category = Table(
     "association_user_purchase_category",
@@ -21,6 +22,13 @@ association_table_user_purchase_category = Table(
         ForeignKey("purchase_category.id"),
         primary_key=True,
     ),
+)
+
+association_table_user_tag = Table(
+    "association_user_tag",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("user.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tag.id"), primary_key=True),
 )
 
 
@@ -44,3 +52,4 @@ class User(
     purchase_categories: Relationship[PurchaseCategory] = relationship(
         secondary=association_table_user_purchase_category
     )
+    tags: Relationship[Tag] = relationship(secondary=association_table_user_tag)

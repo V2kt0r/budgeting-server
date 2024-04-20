@@ -9,6 +9,7 @@ from ..core.models.mixins import (
     UUIDMixin,
 )
 from .purchase_category import PurchaseCategory
+from .tag import Tag
 
 association_table_group_purchase_category = Table(
     "association_group_purchase_category",
@@ -21,6 +22,13 @@ association_table_group_purchase_category = Table(
     ),
 )
 
+association_table_group_tag = Table(
+    "association_group_tag",
+    Base.metadata,
+    Column("group_id", Integer, ForeignKey("group.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tag.id"), primary_key=True),
+)
+
 
 class Group(
     IDMixin, UUIDMixin, TimestampMixin, SoftDeleteMixin, Base, kw_only=True
@@ -29,4 +37,7 @@ class Group(
 
     purchase_categories: Relationship[PurchaseCategory] = relationship(
         secondary=association_table_group_purchase_category
+    )
+    tags: Relationship[Tag] = relationship(
+        secondary=association_table_group_tag
     )
