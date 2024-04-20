@@ -8,10 +8,12 @@ from ..core.models.mixins import (
     UUIDMixin,
 )
 from .mixins.purchase_category import PurchaseCategoryMixin
+from .mixins.tag import TagOptionalMixin
 
 
 class TransactionItem(
     PurchaseCategoryMixin,
+    TagOptionalMixin,
     IDMixin,
     UUIDMixin,
     TimestampMixin,

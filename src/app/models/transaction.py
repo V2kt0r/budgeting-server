@@ -12,6 +12,7 @@ from ..core.models.mixins import (
 )
 from .mixins.misc import TimeMixin
 from .mixins.purchase_category import PurchaseCategoryMixin
+from .mixins.tag import TagOptionalMixin
 from .receipt import Receipt
 from .transaction_item import TransactionItem
 
@@ -54,6 +55,7 @@ class Currency(Enum):
 class Transaction(
     TimeMixin,
     PurchaseCategoryMixin,
+    TagOptionalMixin,
     IDMixin,
     UUIDMixin,
     TimestampMixin,
