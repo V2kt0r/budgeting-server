@@ -23,6 +23,7 @@ from ...crud.crud_users import crud_users
 from ...models.tier import Tier
 from ...models.user import User as UserModel
 from ...schemas.tier import TierRead
+from ...schemas.user import User as UserSchema
 from ...schemas.user import (
     UserCreate,
     UserCreateInternal,
@@ -30,7 +31,6 @@ from ...schemas.user import (
     UserTierUpdate,
     UserUpdate,
 )
-from ...schemas.user import User as UserSchema
 
 router = APIRouter(tags=["users"])
 
