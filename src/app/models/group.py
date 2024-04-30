@@ -1,5 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Integer, Table
-from sqlalchemy.orm import Mapped, Relationship, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db.database import Base
 from ..core.models.mixins import (
@@ -35,9 +35,9 @@ class Group(
 ):
     name: Mapped[str] = mapped_column(index=True)
 
-    purchase_categories: Relationship[PurchaseCategory] = relationship(
+    purchase_categories: Mapped[list[PurchaseCategory]] = relationship(
         secondary=association_table_group_purchase_category
     )
-    tags: Relationship[Tag] = relationship(
+    tags: Mapped[list[Tag]] = relationship(
         secondary=association_table_group_tag
     )

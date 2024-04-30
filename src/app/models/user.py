@@ -1,7 +1,7 @@
 import uuid as uuid_pkg
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Table
-from sqlalchemy.orm import Mapped, Relationship, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db.database import Base
 from ..core.models.mixins import (
@@ -49,7 +49,9 @@ class User(
         index=True, default=None
     )
 
-    purchase_categories: Relationship[PurchaseCategory] = relationship(
-        secondary=association_table_user_purchase_category
-    )
-    tags: Relationship[Tag] = relationship(secondary=association_table_user_tag)
+    # purchase_categories: Mapped[list[PurchaseCategory]] = relationship(
+    #     secondary=association_table_user_purchase_category, default_factory=list
+    # )
+    # tags: Mapped[list[Tag]] = relationship(
+    #     secondary=association_table_user_tag, default_factory=list
+    # )

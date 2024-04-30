@@ -6,6 +6,7 @@ from .receipt import Receipt  # noqa: F401
 from .tag import Tag  # noqa: F401
 from .tier import Tier  # noqa: F401
 from .transaction import Transaction  # noqa: F401
+from .transaction_group_link import TransactionGroupLink  # noqa: F401
 from .transaction_item import TransactionItem  # noqa: F401
 from .user import User  # noqa: F401
 from .user_group_link import UserGroupLink  # noqa: F401
@@ -19,6 +20,7 @@ __all__ = [
     "Tag",
     "Tier",
     "Transaction",
+    "TransactionGroupLink",
     "TransactionItem",
     "User",
     "UserGroupLink",

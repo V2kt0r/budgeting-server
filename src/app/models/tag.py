@@ -13,4 +13,3 @@ class Tag(
     IDMixin, UUIDMixin, TimestampMixin, SoftDeleteMixin, Base, kw_only=True
 ):
     tag_name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str | None] = mapped_column()

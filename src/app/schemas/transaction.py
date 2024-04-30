@@ -8,19 +8,19 @@ from ..core.schemas.mixins import (
     TimestampSchema,
     UUIDSchema,
 )
-
 from ..models.transaction import Currency
-from .mixins.misc import TimeSchema
+from ..schemas.tag import Tag as TagSchema
+from ..schemas.tag import TagRead
+from .mixins.misc import CurrentTimeSchema
 from .mixins.purchase_category import (
     PurchaseCategoryIDSchema,
     PurchaseCategoryOptionalIDSchema,
     PurchaseCategoryOptionalUUIDSchema,
     PurchaseCategoryUUIDSchema,
 )
-from .mixins.tag import TagOptionalIDSchema, TagOptionalUUIDSchema
 
 
-class TransactionBase(TimeSchema, BaseModel):
+class TransactionBase(CurrentTimeSchema, BaseModel):
     amount: Annotated[
         float,
         Field(
@@ -58,14 +58,12 @@ class TransactionBase(TimeSchema, BaseModel):
     ]
 
 
-class TransactionBaseExternal(
-    PurchaseCategoryUUIDSchema, TagOptionalUUIDSchema, TransactionBase
-):
+class TransactionBaseExternal(PurchaseCategoryUUIDSchema, TransactionBase):
     pass
 
 
 class TransactionBaseInternal(
-    PurchaseCategoryIDSchema, TagOptionalIDSchema, TransactionBaseExternal
+    PurchaseCategoryIDSchema, TransactionBaseExternal
 ):
     pass
 
@@ -77,11 +75,17 @@ class Transaction(
     PersistentDeletionSchema,
     TransactionBaseInternal,
 ):
-    pass
+    tags: Annotated[
+        list[TagSchema],
+        Field(description="List of tags associated with the transaction."),
+    ]
 
 
 class TransactionRead(TransactionBaseExternal):
-    pass
+    tags: Annotated[
+        list[TagRead],
+        Field(description="List of tags associated with the transaction."),
+    ]
 
 
 class TransactionCreate(TransactionBaseExternal):
@@ -89,11 +93,65 @@ class TransactionCreate(TransactionBaseExternal):
 
 
 class TransactionCreateInternal(TransactionBaseInternal):
-    pass
+    tags: Annotated[
+        list[TagSchema],
+        Field(description="List of tags associated with the transaction."),
+    ]
 
 
-class TransactionUpdate(
-    PurchaseCategoryOptionalUUIDSchema, TagOptionalUUIDSchema, BaseModel
+class TransactionUpdate(PurchaseCategoryOptionalUUIDSchema, BaseModel):
+    amount: Annotated[
+        float | None,
+        Field(
+            ge=0,
+            default=None,
+            examples=[100.0, 200.0, 300.0],
+            description="Value of the transaction.",
+        ),
+    ] = None
+    currency: Annotated[
+        Currency | None,
+        Field(
+            default=None,
+            examples=[currency for currency in Currency],
+            description="Currency of the transaction.",
+        ),
+    ] = None
+    name: Annotated[
+        str | None,
+        Field(
+            max_length=100,
+            default=None,
+            examples=["LIDL purchase", "Rent payment", "Netflix subscription"],
+            description="Name or title of the transaction.",
+        ),
+    ] = None
+    description: Annotated[
+        str | None,
+        Field(
+            max_length=500,
+            default=None,
+            examples=[
+                "Monthly groceries",
+                "Apartment rent",
+                "Monthly subscription",
+            ],
+            description="Description or details of the transaction.",
+        ),
+    ] = None
+    tag_names: Annotated[
+        list[str] | None,
+        Field(
+            default=None,
+            description="List of tags associated with the transaction.",
+        ),
+    ] = None
+
+
+class TransactionUpdateInternal(
+    PurchaseCategoryOptionalIDSchema,
+    PurchaseCategoryOptionalUUIDSchema,
+    BaseModel,
 ):
     amount: Annotated[
         float | None,
@@ -134,12 +192,13 @@ class TransactionUpdate(
             description="Description or details of the transaction.",
         ),
     ] = None
-
-
-class TransactionUpdateInternal(
-    PurchaseCategoryOptionalIDSchema, TagOptionalIDSchema, TransactionUpdate
-):
-    pass
+    tags: Annotated[
+        list[TagSchema] | None,
+        Field(
+            default=None,
+            description="List of tags associated with the transaction.",
+        ),
+    ] = None
 
 
 class TransactionDelete(BaseModel):
