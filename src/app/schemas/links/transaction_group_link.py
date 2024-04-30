@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..core.schemas.mixins import IDSchema, TimestampSchema, UUIDSchema
+from ...core.schemas.mixins import IDSchema, TimestampSchema, UUIDSchema
 
 
 class TransactionGroupLinkBase(BaseModel):
@@ -81,6 +81,10 @@ class TransactionGroupLinkCreateInternal(TransactionGroupLinkInternal):
 
 class TransactionGroupLinkUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class TransactionGroupLinkUpdateInternal(TransactionGroupLinkUpdate):
+    pass
 
 
 class TransactionGroupLinkDelete(BaseModel):

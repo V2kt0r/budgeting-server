@@ -3,8 +3,8 @@ import uuid as uuid_pkg
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ..core.db.database import Base
-from ..core.models.mixins import (
+from ...core.db.database import Base
+from ...core.models.mixins import (
     IDMixin,
     SoftDeleteMixin,
     TimestampMixin,

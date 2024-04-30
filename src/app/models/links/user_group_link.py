@@ -4,8 +4,8 @@ from enum import Enum
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ..core.db.database import Base
-from ..core.models.mixins import IDMixin, TimestampMixin, UUIDMixin
+from ...core.db.database import Base
+from ...core.models.mixins import IDMixin, TimestampMixin, UUIDMixin
 
 
 class UserRole(Enum):

@@ -1,7 +1,7 @@
 from fastcrud import FastCRUD
 
-from ..models.transaction_group_link import TransactionGroupLink
-from ..schemas.transaction_group_link import (
+from ...models.links.transaction_group_link import TransactionGroupLink
+from ...schemas.links.transaction_group_link import (
     TransactionGroupLinkCreateInternal,
     TransactionGroupLinkDelete,
     TransactionGroupLinkUpdate,
