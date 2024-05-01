@@ -77,7 +77,9 @@ class Transaction(
     pass
 
 
-class TransactionRead(PurchaseCategoryBase, TransactionBaseExternal):
+class TransactionRead(
+    PurchaseCategoryBase, UUIDSchema, TransactionBaseExternal
+):
     tag_names: Annotated[
         list[str],
         Field(

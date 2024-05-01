@@ -1,7 +1,7 @@
 import uuid as uuid_pkg
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastcrud import JoinConfig
 from fastcrud.paginated import (
     PaginatedListResponse,
@@ -43,6 +43,7 @@ from ...schemas.links.user_tag import UserTagCreateInternal
 from ...schemas.links.user_transaction import UserTransactionCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
+    PurchaseCategoryRead,
 )
 from ...schemas.tag import Tag as TagSchema
 from ...schemas.tag import TagCreateInternal, TagRead
@@ -366,3 +367,73 @@ async def get_user_transactions(
     return paginated_response(
         crud_data=crud_data, page=page, items_per_page=items_per_page
     )
+
+
+@router.get("/transactions/{transaction_uuid}", response_model=TransactionRead)
+async def get_transaction(
+    *,
+    request: Request,
+    transaction_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+            description="UUID of the transaction to retrieve",
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Any:
+    # Check if transaction exists
+    transaction_exists: bool = await crud_transactions.exists(
+        db=db, uuid=transaction_uuid, is_deleted=False
+    )
+    if not transaction_exists:
+        raise NotFoundException(
+            "Transaction does not exist or has been deleted."
+        )
+
+    # Check if user has access to transaction
+    user_transaction_join_config = JoinConfig(
+        model=UserTransactionModel,
+        join_on=UserTransactionModel.transaction_id == TransactionModel.id,
+        schema_to_select=BaseModel,
+        filters={"user_id": current_user.id},
+    )
+    category_join_config = JoinConfig(
+        model=PurchaseCategoryModel,
+        join_on=(
+            PurchaseCategoryModel.id == TransactionModel.purchase_category_id
+        ),
+        schema_to_select=PurchaseCategoryRead,
+    )
+    transaction_dict: dict[str, Any] | None = (
+        await crud_transactions.get_joined(
+            db=db,
+            uuid=transaction_uuid,
+            is_deleted=False,
+            joins_config=[user_transaction_join_config, category_join_config],
+            schema_to_select=TransactionRead,
+        )
+    )
+    if transaction_dict is None:
+        raise ForbiddenException()
+
+    # Get tags
+    transaction_tag_join_config = JoinConfig(
+        model=TransactionTagModel,
+        join_on=TransactionTagModel.tag_id == TagModel.id,
+        schema_to_select=BaseModel,
+        filters={"transaction_uuid": transaction_dict["uuid"]},
+    )
+    tag_crud_data: dict[str, Any] = await crud_tags.get_multi_joined(
+        db=db,
+        return_as_model=True,
+        schema_to_select=TagRead,
+        joins_config=[transaction_tag_join_config],
+        limit=9999,
+        is_deleted=False,
+    )
+    transaction_dict["tag_names"] = [
+        tag.tag_name for tag in tag_crud_data["data"]
+    ]
+    return TransactionRead(**transaction_dict)
