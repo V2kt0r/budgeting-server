@@ -9,20 +9,20 @@ from fastcrud.paginated import (
     paginated_response,
 )
 from pydantic import BaseModel
-from sqlalchemy import Row, func, not_, select, true
+from sqlalchemy import func, not_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.db.database import Base, async_get_db
+from ...core.db.database import async_get_db
 from ...core.exceptions.http_exceptions import (
     ForbiddenException,
     NotFoundException,
 )
 from ...crud.crud_purchase_categories import crud_purchase_categories
 from ...crud.crud_tags import crud_tags
-from ...crud.links.crud_user_transaction import crud_user_transaction
 from ...crud.crud_transactions import crud_transactions
 from ...crud.links.crud_transaction_tag import crud_transaction_tag
 from ...crud.links.crud_user_tag import crud_user_tag
+from ...crud.links.crud_user_transaction import crud_user_transaction
 from ...models.links.transaction_tag import (
     TransactionTag as TransactionTagModel,
 )
@@ -44,9 +44,8 @@ from ...schemas.links.user_transaction import UserTransactionCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
 )
-from ...schemas.tag import Tag as TagSchema, TagRead
-from ...schemas.tag import TagCreateInternal
-from ...schemas.transaction import Transaction as TransactionSchema
+from ...schemas.tag import Tag as TagSchema
+from ...schemas.tag import TagCreateInternal, TagRead
 from ...schemas.transaction import (
     TransactionCreate,
     TransactionCreateInternal,
