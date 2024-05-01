@@ -479,19 +479,12 @@ async def update_transaction(
         schema_to_select=BaseModel,
         filters={"user_id": current_user.id},
     )
-    category_join_config = JoinConfig(
-        model=PurchaseCategoryModel,
-        join_on=(
-            PurchaseCategoryModel.id == TransactionModel.purchase_category_id
-        ),
-        schema_to_select=PurchaseCategoryRead,
-    )
     transaction_dict: dict[str, Any] | None = (
         await crud_transactions.get_joined(
             db=db,
             uuid=transaction_uuid,
             is_deleted=False,
-            joins_config=[user_transaction_join_config, category_join_config],
+            joins_config=[user_transaction_join_config],
             schema_to_select=TransactionSchema,
         )
     )
@@ -591,3 +584,54 @@ async def update_transaction(
         )
     # TODO: clean up tags that are no longer in use
     return Message(message="Transaction updated successfully.")
+
+
+@router.delete(
+    "/transactions/{transaction_uuid}",
+    response_model=Message,
+)
+async def delete_transaction(
+    *,
+    request: Request,
+    transaction_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+            description="UUID of the transaction to delete",
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if transaction exists
+    transaction_exists: bool = await crud_transactions.exists(
+        db=db, uuid=transaction_uuid, is_deleted=False
+    )
+    if not transaction_exists:
+        raise NotFoundException(
+            "Transaction does not exist or has been deleted."
+        )
+
+    # Check if user has access to transaction
+    user_transaction_join_config = JoinConfig(
+        model=UserTransactionModel,
+        join_on=UserTransactionModel.transaction_id == TransactionModel.id,
+        schema_to_select=BaseModel,
+        filters={"user_id": current_user.id},
+    )
+    transaction_dict: dict[str, Any] | None = (
+        await crud_transactions.get_joined(
+            db=db,
+            uuid=transaction_uuid,
+            is_deleted=False,
+            joins_config=[user_transaction_join_config],
+            schema_to_select=TransactionSchema,
+        )
+    )
+    if transaction_dict is None:
+        raise ForbiddenException()
+
+    # Delete transaction
+    await crud_transactions.delete(db=db, uuid=transaction_uuid)
+    # TODO: clean up tags and transaction items that are no longer in use
+    return Message(message="Transaction deleted successfully.")
