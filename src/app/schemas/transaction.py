@@ -9,8 +9,7 @@ from ..core.schemas.mixins import (
     UUIDSchema,
 )
 from ..models.transaction import Currency
-from ..schemas.tag import Tag as TagSchema
-from ..schemas.tag import TagRead
+from ..schemas.purchase_category import PurchaseCategoryBase
 from .mixins.misc import CurrentTimeSchema
 from .mixins.purchase_category import (
     PurchaseCategoryIDSchema,
@@ -75,28 +74,32 @@ class Transaction(
     PersistentDeletionSchema,
     TransactionBaseInternal,
 ):
-    tags: Annotated[
-        list[TagSchema],
-        Field(description="List of tags associated with the transaction."),
-    ]
+    pass
 
 
-class TransactionRead(TransactionBaseExternal):
-    tags: Annotated[
-        list[TagRead],
-        Field(description="List of tags associated with the transaction."),
+class TransactionRead(PurchaseCategoryBase, TransactionBaseExternal):
+    tag_names: Annotated[
+        list[str],
+        Field(
+            default=None,
+            description="List of tags associated with the transaction.",
+        ),
     ]
 
 
 class TransactionCreate(TransactionBaseExternal):
-    pass
+    tag_names: Annotated[
+        list[str],
+        Field(
+            default=None,
+            description="List of tags associated with the transaction.",
+            exclude=True,
+        ),
+    ]
 
 
 class TransactionCreateInternal(TransactionBaseInternal):
-    tags: Annotated[
-        list[TagSchema],
-        Field(description="List of tags associated with the transaction."),
-    ]
+    pass
 
 
 class TransactionUpdate(PurchaseCategoryOptionalUUIDSchema, BaseModel):
@@ -190,13 +193,6 @@ class TransactionUpdateInternal(
                 "Monthly subscription",
             ],
             description="Description or details of the transaction.",
-        ),
-    ] = None
-    tags: Annotated[
-        list[TagSchema] | None,
-        Field(
-            default=None,
-            description="List of tags associated with the transaction.",
         ),
     ] = None
 

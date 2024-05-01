@@ -29,7 +29,7 @@ class PurchaseCategoryBase(BaseModel):
             description="Name of the purchase category.",
         ),
     ]
-    description: Annotated[
+    category_description: Annotated[
         str | None,
         Field(
             max_length=500,
@@ -101,7 +101,7 @@ class PurchaseCategoryUpdate(BaseModel):
             description="Name of the purchase category.",
         ),
     ] = None
-    description: Annotated[
+    category_description: Annotated[
         str | None,
         Field(
             max_length=500,

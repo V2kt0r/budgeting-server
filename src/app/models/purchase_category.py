@@ -13,4 +13,4 @@ class PurchaseCategory(
     IDMixin, UUIDMixin, TimestampMixin, SoftDeleteMixin, Base, kw_only=True
 ):
     category_name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str | None] = mapped_column()
+    category_description: Mapped[str | None] = mapped_column()

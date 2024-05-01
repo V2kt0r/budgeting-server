@@ -9,44 +9,48 @@ from fastcrud.paginated import (
     paginated_response,
 )
 from pydantic import BaseModel
-from sqlalchemy import and_, or_
+from sqlalchemy import Row, func, not_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.db.database import async_get_db
+from ...core.db.database import Base, async_get_db
 from ...core.exceptions.http_exceptions import (
-    CustomException,
-    DuplicateValueException,
     ForbiddenException,
     NotFoundException,
 )
-from ...crud.crud_groups import crud_groups
 from ...crud.crud_purchase_categories import crud_purchase_categories
 from ...crud.crud_tags import crud_tags
+from ...crud.links.crud_user_transaction import crud_user_transaction
 from ...crud.crud_transactions import crud_transactions
-from ...crud.crud_users import crud_users
-from ...models.group import Group as GroupModel
+from ...crud.links.crud_transaction_tag import crud_transaction_tag
+from ...crud.links.crud_user_tag import crud_user_tag
+from ...models.links.transaction_tag import (
+    TransactionTag as TransactionTagModel,
+)
+from ...models.links.user_purchase_category import (
+    UserPurchaseCategory as UserPurchaseCategoryModel,
+)
+from ...models.links.user_tag import UserTag as UserTagModel
+from ...models.links.user_transaction import (
+    UserTransaction as UserTransactionModel,
+)
 from ...models.purchase_category import (
     PurchaseCategory as PurchaseCategoryModel,
 )
 from ...models.tag import Tag as TagModel
 from ...models.transaction import Transaction as TransactionModel
-from ...models.transaction import association_table_transaction_tag
-from ...models.user import User as UserModel
-from ...models.user_group_link import UserGroupLink as UserGroupLinkModel
-from ...schemas.group import Group as GroupSchema
+from ...schemas.links.transaction_tag import TransactionTagCreateInternal
+from ...schemas.links.user_tag import UserTagCreateInternal
+from ...schemas.links.user_transaction import UserTransactionCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
 )
-from ...schemas.tag import Tag as TagSchema
-from ...schemas.tag import TagCreateInternal, TagRead
+from ...schemas.tag import Tag as TagSchema, TagRead
+from ...schemas.tag import TagCreateInternal
+from ...schemas.transaction import Transaction as TransactionSchema
 from ...schemas.transaction import (
     TransactionCreate,
     TransactionCreateInternal,
     TransactionRead,
-)
-from ...schemas.transaction_group_link import (
-    TransactionGroupLinkCreate,
-    TransactionGroupLinkCreateInternal,
 )
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
@@ -63,7 +67,6 @@ async def write_user_transaction(
     *,
     request: Request,
     transaction_create: TransactionCreate,
-    tag_names: Annotated[list[str] | None, Query()] = None,
     current_user: Annotated[UserSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(async_get_db)],
 ) -> Any:
@@ -72,54 +75,101 @@ async def write_user_transaction(
         db=db, uuid=transaction_create.purchase_category_uuid, is_deleted=False
     )
     if not purchase_category_exists:
-        raise NotFoundException(
-            f"Purchase category with uuid {transaction_create.purchase_category_uuid} not found."
-        )
+        raise NotFoundException("Purchase category  not found.")
 
     # Check if user has access to purchase category
-    purchase_category: PurchaseCategorySchema | None = next(
-        (
-            purchase_category
-            for purchase_category in current_user.purchase_categories
-            if purchase_category.uuid
-            == transaction_create.purchase_category_uuid
-        ),
-        None,
+    user_purchase_category_join_config = JoinConfig(
+        model=UserPurchaseCategoryModel,
+        join_on=UserPurchaseCategoryModel.purchase_category_id
+        == PurchaseCategoryModel.id,
+        schema_to_select=BaseModel,
+        filters={"user_id": current_user.id},
     )
-    if purchase_category is None:
+    purchase_category_dict: dict[str, Any] | None = (
+        await crud_purchase_categories.get_joined(
+            db=db,
+            uuid=transaction_create.purchase_category_uuid,
+            is_deleted=False,
+            joins_config=[user_purchase_category_join_config],
+            schema_to_select=PurchaseCategorySchema,
+        )
+    )
+    if purchase_category_dict is None:
         raise ForbiddenException()
+    purchase_category = PurchaseCategorySchema(**purchase_category_dict)
 
     # Check tags and create if necessary
-    if tag_names is None:
-        tag_names = []
-    for tag_name in tag_names:
-        tag: TagSchema | None = next(
-            (
-                tag_
-                for tag_ in current_user.tags
-                if tag_.tag_name == tag_name.strip()
-            ),
-            None,
+    tags: list[TagSchema | TagModel] = []
+    for tag_name in transaction_create.tag_names:
+        user_tag_join_config = JoinConfig(
+            model=UserTagModel,
+            join_on=UserTagModel.tag_id == TagModel.id,
+            schema_to_select=BaseModel,
+            filters={"user_id": current_user.id},
         )
-        if tag is None:
+        tag_dict: dict[str, Any] | None = await crud_tags.get_joined(
+            db=db,
+            tag_name=tag_name.strip(),
+            is_deleted=False,
+            joins_config=[user_tag_join_config],
+            schema_to_select=TagSchema,
+        )
+        if tag_dict is None:
             tag_create_internal = TagCreateInternal(tag_name=tag_name.strip())
             tag_model: TagModel = await crud_tags.create(
                 db=db, object=tag_create_internal
             )
-            tag = TagSchema.model_validate(tag_model)
-        current_user.tags.append(tag)
-    await crud_users.update(db=db, object=current_user.model_dump())
+            user_tag_create_internal = UserTagCreateInternal(
+                user_id=current_user.id,
+                user_uuid=current_user.uuid,
+                tag_id=tag_model.id,
+                tag_uuid=tag_model.uuid,
+            )
+            await crud_user_tag.create(db=db, object=user_tag_create_internal)
+            tags.append(tag_model)
+        else:
+            tags.append(TagSchema(**tag_dict))
 
     transaction_create_internal = TransactionCreateInternal(
-        **transaction_create.model_dump(),
+        **transaction_create.model_dump(exclude={"purchase_category_uuid"}),
         purchase_category_id=purchase_category.id,
         purchase_category_uuid=purchase_category.uuid,
-        tags=current_user.tags,
     )
     transaction: TransactionModel = await crud_transactions.create(
         db=db, object=transaction_create_internal
     )
-    return transaction
+    transaction_dict = vars(transaction)
+    transaction_dict.update(
+        {
+            "category_name": purchase_category.category_name,
+            "tag_names": [tag.tag_name for tag in tags],
+        }
+    )
+    transaction_schema = TransactionRead.model_validate(transaction_dict)
+
+    user_transaction_create_internal = UserTransactionCreateInternal(
+        user_id=current_user.id,
+        user_uuid=current_user.uuid,
+        transaction_id=transaction.id,
+        transaction_uuid=transaction.uuid,
+    )
+    await crud_user_transaction.create(
+        db=db, object=user_transaction_create_internal
+    )
+
+    # Create transaction tag links
+    for tag in tags:
+        transaction_tag_create_internal = TransactionTagCreateInternal(
+            transaction_id=transaction.id,
+            transaction_uuid=transaction.uuid,
+            tag_id=tag.id,
+            tag_uuid=tag.uuid,
+        )
+        await crud_transaction_tag.create(
+            db=db, object=transaction_tag_create_internal
+        )
+
+    return transaction_schema
 
 
 @router.get(
@@ -160,74 +210,160 @@ async def get_user_transactions(
             )
 
         # Check if user has access to purchase category
-        purchase_category = next(
-            (
-                purchase_category
-                for purchase_category in current_user.purchase_categories
-                if purchase_category.uuid == purchase_category_uuid
+        user_purchase_category_join_config = JoinConfig(
+            model=UserPurchaseCategoryModel,
+            join_on=(
+                UserPurchaseCategoryModel.purchase_category_id
+                == PurchaseCategoryModel.id
             ),
-            None,
+            schema_to_select=BaseModel,
+            filters={"user_id": current_user.id},
         )
-        if purchase_category is None:
+        purchase_category_dict: dict[str, Any] | None = (
+            await crud_purchase_categories.get_joined(
+                db=db,
+                uuid=purchase_category_uuid,
+                is_deleted=False,
+                joins_config=[user_purchase_category_join_config],
+                schema_to_select=PurchaseCategorySchema,
+            )
+        )
+        if purchase_category_dict is None:
             raise ForbiddenException()
+        purchase_category = PurchaseCategorySchema(**purchase_category_dict)
 
-    # Filter tags for existing tags
-    tags = []
+    # Check tags
+    tags: list[TagSchema] = []
     for tag_name in tag_names:
-        tag: TagSchema | None = next(
-            (
-                tag_
-                for tag_ in current_user.tags
-                if tag_.tag_name == tag_name.strip()
-            ),
-            None,
+        user_tag_join_config = JoinConfig(
+            model=UserTagModel,
+            join_on=UserTagModel.tag_id == TagModel.id,
+            schema_to_select=BaseModel,
+            filters={"user_id": current_user.id},
         )
-        if tag is not None:
-            tags.append(tag)
+        tag_dict: dict[str, Any] | None = await crud_tags.get_joined(
+            db=db,
+            tag_name=tag_name.strip(),
+            is_deleted=False,
+            joins_config=[user_tag_join_config],
+            schema_to_select=TagSchema,
+        )
+        if tag_dict is None:
+            raise NotFoundException(f"Tag '{tag_name}' not found.")
+        tags.append(TagSchema(**tag_dict))
 
     # Get transactions
-    join_configs = []
-    if purchase_category is not None:
-        purcahse_category_join_config = JoinConfig(
-            model=PurchaseCategoryModel,
-            join_on=(
-                PurchaseCategoryModel.id
-                == TransactionModel.purchase_category_uuid
+    # join_configs = []
+    # if purchase_category is not None:
+    #     purcahse_category_join_config = JoinConfig(
+    #         model=PurchaseCategoryModel,
+    #         join_on=(
+    #             PurchaseCategoryModel.id
+    #             == TransactionModel.purchase_category_uuid
+    #         ),
+    #         schema_to_select=PurchaseCategoryRead,
+    #         filters={"uuid": purchase_category.uuid},
+    #     )
+    #     join_configs.append(purcahse_category_join_config)
+    # if tag_names is not None:
+    #     join_on_field: Any = None
+    #     if len(tags) == 0:
+    #         join_on_field = (
+    #             TransactionModel.id == TransactionTagModel.transaction_id
+    #         )
+    #     else:
+    #         # TODO: this is not correct, need to fix
+    #         join_on_field = and_(
+    #             TransactionModel.id == TransactionTagModel.transaction_id,
+    #             TransactionTagModel.tag_id.in_([tag.id for tag in tags]),
+    #         )
+    #     transaction_tag_join_configs = JoinConfig(
+    #         model=TransactionTagModel,
+    #         join_on=join_on_field,
+    #         schema_to_select=BaseModel,
+    #     )
+    #     join_configs.append(transaction_tag_join_configs)
+    # crud_data: dict[str, Any] = await crud_transactions.get_multi_joined(
+    #     db=db,
+    #     return_as_model=True,
+    #     schema_to_select=TransactionRead,
+    #     joins_config=join_configs,
+    #     offset=compute_offset(page=page, items_per_page=items_per_page),
+    #     limit=items_per_page,
+    #     is_deleted=False,
+    # )
+    # for transaction in crud_data["data"]:
+    #     transaction_tag_join_config = JoinConfig(
+    #         model=TransactionTagModel,
+    #         join_on=TransactionTagModel.tag_id == TagModel.id,
+    #         schema_to_select=BaseModel,
+    #         filters={"transaction_id": transaction.id},
+    #     )
+    #     tag_crud_data = await crud_tags.get_multi_joined(
+    #         db=db,
+    #         return_as_model=True,
+    #         schema_to_select=TagRead,
+    #         joins_config=[transaction_tag_join_config],
+    #         limit=9999,
+    #         is_deleted=False,
+    #     )
+    #     transaction["tag_names"] = [
+    #         tag.tag_name for tag in tag_crud_data["data"]
+    #     ]
+    # return paginated_response(
+    #     crud_data=crud_data, page=page, items_per_page=items_per_page
+    # )
+
+    statement = (
+        select(TransactionModel)
+        .outerjoin(PurchaseCategoryModel)
+        .add_columns(PurchaseCategoryModel.category_name)
+        .outerjoin(UserTransactionModel)
+        .outerjoin(TransactionTagModel)
+        .outerjoin(TagModel)
+        .filter(
+            UserTransactionModel.user_id == current_user.id,
+            not_(TransactionModel.is_deleted),
+            not_(PurchaseCategoryModel.is_deleted),
+            not_(TagModel.is_deleted),
+            (
+                TagModel.id.in_([tag.id for tag in tags])
+                if len(tags) > 0
+                else true()
             ),
-            schema_to_select=BaseModel,
-            filters={"uuid": purchase_category.uuid},
         )
-        join_configs.append(purcahse_category_join_config)
-    if tag_names is not None:
-        join_on_field: Any = None
-        if len(tags) == 0:
-            join_on_field = (
-                TransactionModel.id
-                == association_table_transaction_tag.c.transaction_id
-            )
-        else:
-            join_on_field = and_(
-                TransactionModel.id
-                == association_table_transaction_tag.c.transaction_id,
-                association_table_transaction_tag.c.tag_id.in_(
-                    [tag.id for tag in tags]
-                ),
-            )
-        tag_join_configs = JoinConfig(
-            model=association_table_transaction_tag,
-            join_on=join_on_field,
-            schema_to_select=BaseModel,
-        )
-        join_configs.append(tag_join_configs)
-    crud_data: dict[str, Any] = await crud_transactions.get_multi_joined(
-        db=db,
-        return_as_model=True,
-        schema_to_select=TransactionRead,
-        joins_config=join_configs,
-        offset=compute_offset(page=page, items_per_page=items_per_page),
-        limit=items_per_page,
-        is_deleted=False,
+        .group_by(TransactionModel.id, PurchaseCategoryModel.id)
+        .having(func.count(TagModel.id.distinct()) >= len(tags))
+        .offset(compute_offset(page=page, items_per_page=items_per_page))
+        .limit(items_per_page)
     )
+    if purchase_category is not None:
+        statement = statement.filter(
+            PurchaseCategoryModel.id == purchase_category.id
+        )
+
+    db_rows = await db.execute(statement)
+    data: list[TransactionRead] = []
+    for row in db_rows.mappings().all():
+        row_dict = dict(row)
+        transaction: dict[str, Any] = vars(row_dict["Transaction"])
+        transaction["category_name"] = row_dict["category_name"]
+
+        tags_stmt = (
+            select(TagModel)
+            .outerjoin(TransactionTagModel)
+            .filter(TransactionTagModel.transaction_id == transaction["id"])
+        )
+        tag_db_rows = await db.execute(tags_stmt)
+        tag_data: list[TagRead] = []
+        for tag_row in tag_db_rows.mappings().all():
+            tag_row_dict = dict(tag_row)
+            tag_data.append(TagRead(**vars(tag_row_dict["Tag"])))
+        transaction["tag_names"] = [tag.tag_name for tag in tag_data]
+
+        data.append(TransactionRead(**transaction))
+
+    crud_data = {"data": data, "total_count": len(data)}
     return paginated_response(
         crud_data=crud_data, page=page, items_per_page=items_per_page
     )

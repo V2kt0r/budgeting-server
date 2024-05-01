@@ -27,7 +27,7 @@ class TransactionTagExternal(TransactionTagBase):
     ]
 
 
-class TransactionTagInternal(TransactionTagBase):
+class TransactionTagInternal(TransactionTagExternal):
     transaction_id: Annotated[
         int,
         Field(
