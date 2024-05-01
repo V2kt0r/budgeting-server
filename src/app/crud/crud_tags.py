@@ -16,3 +16,7 @@ CRUDTag = FastCRUD[
     TagDelete,
 ]
 crud_tags = CRUDTag(Tag)
+
+
+def cleanup_tags():
+    raise NotImplementedError

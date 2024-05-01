@@ -13,8 +13,6 @@ from ..schemas.purchase_category import PurchaseCategoryBase
 from .mixins.misc import CurrentTimeSchema
 from .mixins.purchase_category import (
     PurchaseCategoryIDSchema,
-    PurchaseCategoryOptionalIDSchema,
-    PurchaseCategoryOptionalUUIDSchema,
     PurchaseCategoryUUIDSchema,
 )
 
@@ -104,33 +102,33 @@ class TransactionCreateInternal(TransactionBaseInternal):
     pass
 
 
-class TransactionUpdate(PurchaseCategoryOptionalUUIDSchema, BaseModel):
+class TransactionUpdate(PurchaseCategoryUUIDSchema, BaseModel):
     amount: Annotated[
-        float | None,
+        float,
         Field(
             ge=0,
             default=None,
             examples=[100.0, 200.0, 300.0],
             description="Value of the transaction.",
         ),
-    ] = None
+    ]
     currency: Annotated[
-        Currency | None,
+        Currency,
         Field(
             default=None,
             examples=[currency for currency in Currency],
             description="Currency of the transaction.",
         ),
-    ] = None
+    ]
     name: Annotated[
-        str | None,
+        str,
         Field(
             max_length=100,
             default=None,
             examples=["LIDL purchase", "Rent payment", "Netflix subscription"],
             description="Name or title of the transaction.",
         ),
-    ] = None
+    ]
     description: Annotated[
         str | None,
         Field(
@@ -145,47 +143,46 @@ class TransactionUpdate(PurchaseCategoryOptionalUUIDSchema, BaseModel):
         ),
     ] = None
     tag_names: Annotated[
-        list[str] | None,
+        list[str],
         Field(
             default=None,
             description="List of tags associated with the transaction.",
+            exclude=True,
         ),
-    ] = None
+    ]
 
 
 class TransactionUpdateInternal(
-    PurchaseCategoryOptionalIDSchema,
-    PurchaseCategoryOptionalUUIDSchema,
-    BaseModel,
+    PurchaseCategoryIDSchema, PurchaseCategoryUUIDSchema, BaseModel
 ):
     amount: Annotated[
-        float | None,
+        float,
         Field(
             ge=0,
             default=None,
             examples=[100.0, 200.0, 300.0],
             description="Value of the transaction.",
         ),
-    ] = None
+    ]
     currency: Annotated[
-        Currency | None,
+        Currency,
         Field(
             default=None,
             examples=[currency for currency in Currency],
             description="Currency of the transaction.",
         ),
-    ] = None
+    ]
     name: Annotated[
-        str | None,
+        str,
         Field(
             max_length=100,
             default=None,
             examples=["LIDL purchase", "Rent payment", "Netflix subscription"],
             description="Name or title of the transaction.",
         ),
-    ] = None
+    ]
     description: Annotated[
-        str | None,
+        str,
         Field(
             max_length=500,
             default=None,
@@ -196,7 +193,7 @@ class TransactionUpdateInternal(
             ],
             description="Description or details of the transaction.",
         ),
-    ] = None
+    ]
 
 
 class TransactionDelete(BaseModel):

@@ -1,7 +1,7 @@
 import uuid as uuid_pkg
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Body, Depends, Path, Query, Request
 from fastcrud import JoinConfig
 from fastcrud.paginated import (
     PaginatedListResponse,
@@ -17,6 +17,7 @@ from ...core.exceptions.http_exceptions import (
     ForbiddenException,
     NotFoundException,
 )
+from ...core.schemas.utils import Message
 from ...crud.crud_purchase_categories import crud_purchase_categories
 from ...crud.crud_tags import crud_tags
 from ...crud.crud_transactions import crud_transactions
@@ -43,14 +44,17 @@ from ...schemas.links.user_tag import UserTagCreateInternal
 from ...schemas.links.user_transaction import UserTransactionCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
-    PurchaseCategoryRead,
 )
+from ...schemas.purchase_category import PurchaseCategoryRead
 from ...schemas.tag import Tag as TagSchema
 from ...schemas.tag import TagCreateInternal, TagRead
+from ...schemas.transaction import Transaction as TransactionSchema
 from ...schemas.transaction import (
     TransactionCreate,
     TransactionCreateInternal,
     TransactionRead,
+    TransactionUpdate,
+    TransactionUpdateInternal,
 )
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
@@ -80,8 +84,10 @@ async def write_user_transaction(
     # Check if user has access to purchase category
     user_purchase_category_join_config = JoinConfig(
         model=UserPurchaseCategoryModel,
-        join_on=UserPurchaseCategoryModel.purchase_category_id
-        == PurchaseCategoryModel.id,
+        join_on=(
+            UserPurchaseCategoryModel.purchase_category_id
+            == PurchaseCategoryModel.id
+        ),
         schema_to_select=BaseModel,
         filters={"user_id": current_user.id},
     )
@@ -437,3 +443,151 @@ async def get_transaction(
         tag.tag_name for tag in tag_crud_data["data"]
     ]
     return TransactionRead(**transaction_dict)
+
+
+@router.put(
+    "/transactions/{transaction_uuid}",
+    response_model=Message,
+)
+async def update_transaction(
+    *,
+    request: Request,
+    transaction_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+            description="UUID of the transaction to update",
+        ),
+    ],
+    transaction_update: Annotated[TransactionUpdate, Body()],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if transaction exists
+    transaction_exists: bool = await crud_transactions.exists(
+        db=db, uuid=transaction_uuid, is_deleted=False
+    )
+    if not transaction_exists:
+        raise NotFoundException(
+            "Transaction does not exist or has been deleted."
+        )
+
+    # Check if user has access to transaction
+    user_transaction_join_config = JoinConfig(
+        model=UserTransactionModel,
+        join_on=UserTransactionModel.transaction_id == TransactionModel.id,
+        schema_to_select=BaseModel,
+        filters={"user_id": current_user.id},
+    )
+    category_join_config = JoinConfig(
+        model=PurchaseCategoryModel,
+        join_on=(
+            PurchaseCategoryModel.id == TransactionModel.purchase_category_id
+        ),
+        schema_to_select=PurchaseCategoryRead,
+    )
+    transaction_dict: dict[str, Any] | None = (
+        await crud_transactions.get_joined(
+            db=db,
+            uuid=transaction_uuid,
+            is_deleted=False,
+            joins_config=[user_transaction_join_config, category_join_config],
+            schema_to_select=TransactionSchema,
+        )
+    )
+    if transaction_dict is None:
+        raise ForbiddenException()
+    transaction: TransactionSchema = TransactionSchema(**transaction_dict)
+
+    # Check if purchase category exists
+    purchase_category_exists: bool = await crud_purchase_categories.exists(
+        db=db,
+        uuid=transaction_update.purchase_category_uuid,
+        is_deleted=False,
+    )
+    if not purchase_category_exists:
+        raise NotFoundException("Purchase category does not exist.")
+
+    # Check if user has access to purchase category
+    user_purchase_category_join_config = JoinConfig(
+        model=UserPurchaseCategoryModel,
+        join_on=(
+            UserPurchaseCategoryModel.purchase_category_id
+            == PurchaseCategoryModel.id
+        ),
+        schema_to_select=BaseModel,
+        filters={"user_id": current_user.id},
+    )
+    purchase_category_dict: dict[str, Any] | None = (
+        await crud_purchase_categories.get_joined(
+            db=db,
+            uuid=transaction_update.purchase_category_uuid,
+            is_deleted=False,
+            joins_config=[user_purchase_category_join_config],
+            schema_to_select=PurchaseCategorySchema,
+        )
+    )
+    if purchase_category_dict is None:
+        raise ForbiddenException()
+    purchase_category = PurchaseCategorySchema(**purchase_category_dict)
+
+    # Remove old tags
+    await crud_transaction_tag.delete(
+        db=db, transaction_uuid=transaction_uuid, allow_multiple=True
+    )
+
+    # Check tags and create if necessary
+    tags: list[TagSchema | TagModel] = []
+    for tag_name in transaction_update.tag_names:
+        user_tag_join_config = JoinConfig(
+            model=UserTagModel,
+            join_on=UserTagModel.tag_id == TagModel.id,
+            schema_to_select=BaseModel,
+            filters={"user_id": current_user.id},
+        )
+        tag_dict: dict[str, Any] | None = await crud_tags.get_joined(
+            db=db,
+            tag_name=tag_name.strip(),
+            is_deleted=False,
+            joins_config=[user_tag_join_config],
+            schema_to_select=TagSchema,
+        )
+        if tag_dict is None:
+            tag_create_internal = TagCreateInternal(tag_name=tag_name.strip())
+            tag_model: TagModel = await crud_tags.create(
+                db=db, object=tag_create_internal
+            )
+            user_tag_create_internal = UserTagCreateInternal(
+                user_id=current_user.id,
+                user_uuid=current_user.uuid,
+                tag_id=tag_model.id,
+                tag_uuid=tag_model.uuid,
+            )
+            await crud_user_tag.create(db=db, object=user_tag_create_internal)
+            tags.append(tag_model)
+        else:
+            tags.append(TagSchema(**tag_dict))
+
+    # Update transaction
+    transaction_update_internal = TransactionUpdateInternal(
+        **transaction_update.model_dump(exclude={"purchase_category_uuid"}),
+        purchase_category_id=purchase_category.id,
+        purchase_category_uuid=purchase_category.uuid,
+    )
+    await crud_transactions.update(
+        db=db,
+        uuid=transaction_uuid,
+        object=transaction_update_internal.model_dump(),
+    )
+    for tag in tags:
+        transaction_tag_create_internal = TransactionTagCreateInternal(
+            transaction_id=transaction.id,
+            transaction_uuid=transaction.uuid,
+            tag_id=tag.id,
+            tag_uuid=tag.uuid,
+        )
+        await crud_transaction_tag.create(
+            db=db, object=transaction_tag_create_internal
+        )
+    # TODO: clean up tags that are no longer in use
+    return Message(message="Transaction updated successfully.")
