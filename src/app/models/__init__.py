@@ -2,8 +2,8 @@ from .group import Group  # noqa: F401
 from .income import Income  # noqa: F401
 from .links.group_purchase_category import GroupPurchaseCategory  # noqa: F401
 from .links.group_tag import GroupTag  # noqa: F401
+from .links.group_transaction import GroupTransaction  # noqa: F401
 from .links.group_user import GroupUser  # noqa: F401
-from .links.transaction_group_link import TransactionGroupLink  # noqa: F401
 from .links.transaction_item_tag import TransactionItemTag  # noqa: F401
 from .links.transaction_receipt import TransactionReceipt  # noqa: F401
 from .links.transaction_tag import TransactionTag  # noqa: F401
@@ -27,8 +27,8 @@ __all__ = [
     "Income",
     "GroupPurchaseCategory",
     "GroupTag",
+    "GroupTransaction",
     "GroupUser",
-    "TransactionGroupLink",
     "TransactionItemTag",
     "TransactionReceipt",
     "TransactionTag",

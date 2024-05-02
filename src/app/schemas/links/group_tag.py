@@ -27,7 +27,7 @@ class GroupTagExternal(GroupTagBase):
     ]
 
 
-class GroupTagInternal(GroupTagBase):
+class GroupTagInternal(GroupTagExternal):
     group_id: Annotated[
         int,
         Field(

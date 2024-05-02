@@ -6,11 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from ...core.schemas.mixins import IDSchema, TimestampSchema, UUIDSchema
 
 
-class TransactionGroupLinkBase(BaseModel):
+class GroupTransactionBase(BaseModel):
     pass
 
 
-class TransactionGroupLinkExternal(TransactionGroupLinkBase):
+class GroupTransactionBaseExternal(GroupTransactionBase):
     transaction_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
@@ -34,7 +34,7 @@ class TransactionGroupLinkExternal(TransactionGroupLinkBase):
     ]
 
 
-class TransactionGroupLinkInternal(TransactionGroupLinkBase):
+class GroupTransactionBaseInternal(GroupTransactionBaseExternal):
     transaction_id: Annotated[
         int,
         Field(
@@ -61,31 +61,31 @@ class TransactionGroupLinkInternal(TransactionGroupLinkBase):
     ]
 
 
-class TransactionGroupLink(
-    IDSchema, UUIDSchema, TimestampSchema, TransactionGroupLinkInternal
+class GroupTransaction(
+    IDSchema, UUIDSchema, TimestampSchema, GroupTransactionBaseInternal
 ):
     pass
 
 
-class TransactionGroupLinkRead(TransactionGroupLinkExternal):
+class GroupTransactionRead(UUIDSchema, GroupTransactionBaseExternal):
     pass
 
 
-class TransactionGroupLinkCreate(TransactionGroupLinkExternal):
+class GroupTransactionCreate(GroupTransactionBaseExternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class TransactionGroupLinkCreateInternal(TransactionGroupLinkInternal):
+class GroupTransactionCreateInternal(GroupTransactionBaseInternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class TransactionGroupLinkUpdate(BaseModel):
+class GroupTransactionUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class TransactionGroupLinkUpdateInternal(TransactionGroupLinkUpdate):
+class GroupTransactionUpdateInternal(GroupTransactionUpdate):
     pass
 
 
-class TransactionGroupLinkDelete(BaseModel):
+class GroupTransactionDelete(BaseModel):
     model_config = ConfigDict(extra="forbid")
