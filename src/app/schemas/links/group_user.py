@@ -4,13 +4,17 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...core.schemas.mixins import TimestampSchema
+from ...models.links.group_user import UserRole
 
 
-class GroupTagBase(BaseModel):
-    pass
+class GroupUserBase(BaseModel):
+    user_role: Annotated[
+        UserRole,
+        Field(examples=[role for role in UserRole], description="User role."),
+    ]
 
 
-class GroupTagExternal(GroupTagBase):
+class GroupUserExternal(GroupUserBase):
     group_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
@@ -18,16 +22,16 @@ class GroupTagExternal(GroupTagBase):
             description="Group UUID must be a valid UUIDv4.",
         ),
     ]
-    tag_uuid: Annotated[
+    user_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
             examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
-            description="Tag UUID must be a valid UUIDv4.",
+            description="User UUID must be a valid UUIDv4.",
         ),
     ]
 
 
-class GroupTagInternal(GroupTagExternal):
+class GroupUserInternal(GroupUserExternal):
     group_id: Annotated[
         int,
         Field(
@@ -36,39 +40,39 @@ class GroupTagInternal(GroupTagExternal):
             description="Group ID must be a valid integer.",
         ),
     ]
-    tag_id: Annotated[
+    user_id: Annotated[
         int,
         Field(
             ge=1,
             examples=[1, 2, 3],
-            description="Tag ID must be a valid integer.",
+            description="User ID must be a valid integer.",
         ),
     ]
 
 
-class GroupTag(TimestampSchema, GroupTagInternal):
+class GroupUser(TimestampSchema, GroupUserInternal):
     pass
 
 
-class GroupTagRead(GroupTagExternal):
+class GroupUserRead(GroupUserExternal):
     pass
 
 
-class GroupTagCreate(GroupTagExternal):
+class GroupUserCreate(GroupUserExternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class GroupTagCreateInternal(GroupTagInternal):
+class GroupUserCreateInternal(GroupUserInternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class GroupTagUpdate(BaseModel):
+class GroupUserUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class GroupTagUpdateInternal(GroupTagUpdate):
+class GroupUserUpdateInternal(GroupUserUpdate):
     pass
 
 
-class GroupTagDelete(BaseModel):
+class GroupUserDelete(BaseModel):
     model_config = ConfigDict(extra="forbid")

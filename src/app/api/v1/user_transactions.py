@@ -79,7 +79,7 @@ async def write_user_transaction(
         db=db, uuid=transaction_create.purchase_category_uuid, is_deleted=False
     )
     if not purchase_category_exists:
-        raise NotFoundException("Purchase category  not found.")
+        raise NotFoundException("Purchase category not found.")
 
     # Check if user has access to purchase category
     user_purchase_category_join_config = JoinConfig(
@@ -136,6 +136,7 @@ async def write_user_transaction(
         else:
             tags.append(TagSchema(**tag_dict))
 
+    # Create transaction
     transaction_create_internal = TransactionCreateInternal(
         **transaction_create.model_dump(exclude={"purchase_category_uuid"}),
         purchase_category_id=purchase_category.id,

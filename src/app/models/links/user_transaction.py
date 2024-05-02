@@ -13,6 +13,8 @@ class UserTransaction(TimestampMixin, Base, kw_only=True):
     )
     user_uuid: Mapped[uuid_pkg.UUID] = mapped_column(index=True)
     transaction_id: Mapped[int] = mapped_column(
-        ForeignKey("transaction.id"), index=True, primary_key=True
+        ForeignKey("transaction.id"), index=True, unique=True, primary_key=True
     )
-    transaction_uuid: Mapped[uuid_pkg.UUID] = mapped_column(index=True)
+    transaction_uuid: Mapped[uuid_pkg.UUID] = mapped_column(
+        index=True, unique=True
+    )

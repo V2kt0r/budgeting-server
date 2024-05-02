@@ -8,6 +8,7 @@ from ..core.schemas.mixins import (
     TimestampSchema,
     UUIDSchema,
 )
+from ..schemas.links.group_user import GroupUserBase
 
 
 class GroupBase(BaseModel):
@@ -34,7 +35,11 @@ class Group(
     pass
 
 
-class GroupRead(GroupBaseExternal):
+class GroupRead(UUIDSchema, GroupBaseExternal):
+    pass
+
+
+class GroupReadWithUserRole(GroupUserBase, GroupRead):
     pass
 
 
@@ -48,12 +53,12 @@ class GroupCreateInternal(GroupBaseInternal):
 
 class GroupUpdate(BaseModel):
     name: Annotated[
-        str | None,
+        str,
         Field(
             examples=["My Group"],
             description="The name of the group",
         ),
-    ] = None
+    ]
 
 
 class GroupUpdateInternal(GroupUpdate):
