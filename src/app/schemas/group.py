@@ -53,12 +53,12 @@ class GroupCreateInternal(GroupBaseInternal):
 
 class GroupUpdate(BaseModel):
     name: Annotated[
-        str | None,
+        str,
         Field(
             examples=["My Group"],
             description="The name of the group",
         ),
-    ] = None
+    ]
 
 
 class GroupUpdateInternal(GroupUpdate):
