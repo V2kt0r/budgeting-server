@@ -1,7 +1,16 @@
 import uuid as uuid_pkg
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, Header, Path, Query, Request
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    Header,
+    Path,
+    Query,
+    Request,
+    Response,
+)
 from fastcrud import JoinConfig
 from fastcrud.paginated import (
     PaginatedListResponse,
@@ -52,7 +61,10 @@ from ...schemas.links.group_tag import GroupTagCreateInternal
 from ...schemas.links.group_transaction import (
     GroupTransactionCreateInternal,
 )
-from ...schemas.links.group_user import GroupUserCreateInternal
+from ...schemas.links.group_user import (
+    GroupUserCreateInternal,
+    GroupUserUpdateInternal,
+)
 from ...schemas.links.transaction_tag import TransactionTagCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
@@ -82,6 +94,7 @@ router = APIRouter(tags=["Group Members"])
 async def add_group_user(
     *,
     request: Request,
+    response: Response,
     group_uuid: Annotated[
         uuid_pkg.UUID,
         Path(
@@ -103,7 +116,7 @@ async def add_group_user(
     ),
     current_user: Annotated[UserSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(async_get_db)],
-):
+) -> Message:
     # Check if group exists
     group_schema: GroupSchema | None = await crud_groups.get(
         db=db,
@@ -141,6 +154,7 @@ async def add_group_user(
         db=db, group_uuid=group_uuid, user_uuid=user_uuid
     )
     if user_in_group:
+        response.status_code = 200
         return Message(message="User is already in the group")
 
     # Add user to group
@@ -155,3 +169,84 @@ async def add_group_user(
         ),
     )
     return Message(message="User added to group")
+
+
+@router.put(
+    "/group/{group_uuid}/users/{user_uuid}",
+    response_model=Message,
+    status_code=200,
+)
+async def change_group_user_role(
+    *,
+    request: Request,
+    group_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the group",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    user_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the user",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    user_role: Annotated[
+        UserRole,
+        Query(
+            description="The role of the user in the group",
+            examples=[role for role in UserRole],
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if group exists
+    group_schema: GroupSchema | None = await crud_groups.get(
+        db=db,
+        uuid=group_uuid,
+        is_deleted=False,
+        return_as_model=True,
+        schema_to_select=GroupSchema,
+    )
+    if group_schema is None:
+        raise NotFoundException("The group with this UUID does not exist")
+
+    # Check if user is in the group and is an admin
+    user_has_permission: bool = await crud_group_user.exists(
+        db=db,
+        group_uuid=group_uuid,
+        user_uuid=current_user.uuid,
+        user_role=UserRole.ADMIN,
+    )
+    if not user_has_permission:
+        raise ForbiddenException()
+
+    # Check if user exists
+    user_schema: UserSchema | None = await crud_users.get(
+        db=db,
+        uuid=user_uuid,
+        is_deleted=False,
+        return_as_model=True,
+        schema_to_select=UserSchema,
+    )
+    if user_schema is None:
+        raise NotFoundException("The user with this UUID does not exist")
+
+    # Check if user is in the group
+    user_in_group: bool = await crud_group_user.exists(
+        db=db, group_uuid=group_uuid, user_uuid=user_uuid
+    )
+    if not user_in_group:
+        raise NotFoundException("The user is not in the group")
+
+    # Change user role
+    await crud_group_user.update(
+        db=db,
+        group_uuid=group_uuid,
+        user_uuid=user_uuid,
+        object=GroupUserUpdateInternal(user_role=user_role),
+    )
+    return Message(message="User role updated")
