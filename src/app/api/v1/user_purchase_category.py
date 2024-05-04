@@ -50,12 +50,12 @@ from ...schemas.links.user_tag import UserTagCreateInternal
 from ...schemas.links.user_transaction import UserTransactionCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
-    PurchaseCategoryUpdate,
 )
 from ...schemas.purchase_category import (
     PurchaseCategoryCreate,
     PurchaseCategoryCreateInternal,
     PurchaseCategoryRead,
+    PurchaseCategoryUpdate,
 )
 from ...schemas.tag import Tag as TagSchema
 from ...schemas.tag import TagCreateInternal, TagRead
@@ -191,3 +191,55 @@ async def update_purchase_category(
         ),
     )
     return Message(message="The purchase category has been updated.")
+
+
+@router.delete(
+    "/purchase-category/{purchase_category_uuid}", response_model=Message
+)
+async def delete_purchase_category(
+    *,
+    request: Request,
+    purchase_category_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the purchase category to delete.",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if purchase category exists
+    purchase_category_exists: bool = await crud_purchase_categories.exists(
+        db=db, uuid=purchase_category_uuid, is_deleted=False
+    )
+    if not purchase_category_exists:
+        raise NotFoundException(
+            "The purchase category with this UUID does not exist."
+        )
+
+    # Check if user has access to purchase category
+    user_purchase_category_exists: bool = (
+        await crud_user_purchase_category.exists(
+            db=db,
+            user_id=current_user.id,
+            purchase_category_uuid=purchase_category_uuid,
+        )
+    )
+    if not user_purchase_category_exists:
+        raise ForbiddenException(
+            "You do not have access to this purchase category."
+        )
+
+    # Check if purchase category is linked to any transactions
+    transactions_linked: bool = await crud_transactions.exists(
+        db=db, purchase_category_uuid=purchase_category_uuid
+    )
+    if transactions_linked:
+        raise ForbiddenException(
+            "The purchase category is linked to transactions."
+        )
+
+    # Delete the purchase category
+    await crud_purchase_categories.delete(db=db, uuid=purchase_category_uuid)
+    return Message(message="The purchase category has been deleted.")
