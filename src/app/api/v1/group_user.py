@@ -21,6 +21,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, not_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...models.user import User as UserModel
+
 from ...core.db.database import async_get_db
 from ...core.exceptions.http_exceptions import (
     CustomException,
@@ -48,6 +50,7 @@ from ...models.links.group_transaction import (
     GroupTransaction as GroupTransactionModel,
 )
 from ...models.links.group_user import UserRole
+from ...models.links.group_user import GroupUser as GroupUserModel
 from ...models.links.transaction_tag import (
     TransactionTag as TransactionTagModel,
 )
@@ -62,6 +65,7 @@ from ...schemas.links.group_transaction import (
     GroupTransactionCreateInternal,
 )
 from ...schemas.links.group_user import (
+    GroupUserBase,
     GroupUserCreateInternal,
     GroupUserUpdateInternal,
 )
@@ -80,7 +84,7 @@ from ...schemas.transaction import (
     TransactionUpdate,
     TransactionUpdateInternal,
 )
-from ...schemas.user import User as UserSchema
+from ...schemas.user import User as UserSchema, UserReadWithUserRole
 from ..dependencies import get_current_user
 
 router = APIRouter(tags=["Group Members"])
@@ -175,6 +179,60 @@ async def add_group_user(
         ),
     )
     return Message(message="User added to group")
+
+
+@router.get(
+    "/group/{group_uuid}/users",
+    response_model=PaginatedListResponse[UserReadWithUserRole],
+)
+async def get_group_users(
+    *,
+    request: Request,
+    group_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the group",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+    page: int = Query(ge=1, default=1),
+    items_per_page: int = Query(ge=1, le=100, default=10),
+) -> Any:
+    # Check if group exists
+    group_exists: bool = await crud_groups.exists(
+        db=db, uuid=group_uuid, is_deleted=False
+    )
+    if not group_exists:
+        raise NotFoundException("The group with this UUID does not exist")
+
+    # Check if user is in the group
+    user_in_group: bool = await crud_group_user.exists(
+        db=db,
+        group_uuid=group_uuid,
+        user_uuid=current_user.uuid,
+    )
+    if not user_in_group:
+        raise ForbiddenException()
+
+    # Get group users
+    group_user_join_config = JoinConfig(
+        model=GroupUserModel,
+        join_on=GroupUserModel.user_id == UserModel.id,
+        schema_to_select=GroupUserBase,
+        filters={"group_uuid": group_uuid},
+    )
+    crud_data: dict[str, Any] = await crud_users.get_multi_joined(
+        db=db,
+        is_deleted=False,
+        joins_config=[group_user_join_config],
+        return_as_model=False,
+        schema_to_select=UserReadWithUserRole,
+    )
+    return paginated_response(
+        crud_data=crud_data, page=page, items_per_page=items_per_page
+    )
 
 
 @router.put("/group/{group_uuid}/users/{username}", response_model=Message)
