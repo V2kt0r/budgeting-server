@@ -54,7 +54,7 @@ class PurchaseCategoryBaseExternal(PurchaseCategoryBase):
     pass
 
 
-class PurchaseCategoryInternal(PurchaseCategoryBaseExternal):
+class PurchaseCategoryBaseInternal(PurchaseCategoryBaseExternal):
     pass
 
 
@@ -63,7 +63,7 @@ class PurchaseCategory(
     UUIDSchema,
     TimestampSchema,
     PersistentDeletionSchema,
-    PurchaseCategoryInternal,
+    PurchaseCategoryBaseInternal,
 ):
     pass
 
@@ -76,7 +76,7 @@ class PurchaseCategoryCreate(PurchaseCategoryBaseExternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class PurchaseCategoryCreateInternal(PurchaseCategoryCreate):
+class PurchaseCategoryCreateInternal(PurchaseCategoryBaseInternal):
     pass
 
 
