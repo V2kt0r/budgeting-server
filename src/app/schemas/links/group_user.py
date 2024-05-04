@@ -69,6 +69,11 @@ class GroupUserCreateInternal(GroupUserInternal):
 class GroupUserUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    user_role: Annotated[
+        UserRole,
+        Field(examples=[role for role in UserRole], description="User role."),
+    ]
+
 
 class GroupUserUpdateInternal(GroupUserUpdate):
     pass

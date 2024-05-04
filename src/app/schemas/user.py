@@ -9,12 +9,7 @@ from ..core.schemas.mixins import (
     TimestampSchema,
     UUIDSchema,
 )
-from ..schemas.purchase_category import (
-    PurchaseCategory as PurchaseCategorySchema,
-)
-from ..schemas.purchase_category import PurchaseCategoryRead
-from ..schemas.tag import Tag as TagSchema
-from ..schemas.tag import TagRead
+from .links.group_user import GroupUserBase
 from .mixins.uuid import OptionalUUIDSchema
 
 
@@ -72,15 +67,6 @@ class User(
     hashed_password: str
     is_superuser: bool = False
 
-    # purchase_categories: Annotated[
-    #     list[PurchaseCategorySchema],
-    #     Field(description="Purchase categories created by the user."),
-    # ]
-    # tags: Annotated[
-    #     list[TagSchema],
-    #     Field(description="Tags created by the user."),
-    # ]
-
 
 class UserRead(UUIDSchema, UserBaseExternal):
     profile_image_url: Annotated[
@@ -93,14 +79,9 @@ class UserRead(UUIDSchema, UserBaseExternal):
         ),
     ]
 
-    # purchase_categories: Annotated[
-    #     list[PurchaseCategoryRead],
-    #     Field(description="Purchase categories created by the user."),
-    # ]
-    # tags: Annotated[
-    #     list[TagRead],
-    #     Field(description="Tags created by the user."),
-    # ]
+
+class UserReadWithUserRole(GroupUserBase, UserRead):
+    pass
 
 
 class UserCreate(UserBaseExternal):
