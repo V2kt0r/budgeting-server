@@ -10,7 +10,7 @@ class GroupPurchaseCategoryBase(BaseModel):
     pass
 
 
-class GroupPurchaseCategoryExternal(GroupPurchaseCategoryBase):
+class GroupPurchaseCategoryBaseExternal(GroupPurchaseCategoryBase):
     group_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
@@ -27,7 +27,7 @@ class GroupPurchaseCategoryExternal(GroupPurchaseCategoryBase):
     ]
 
 
-class GroupPurchaseCategoryInternal(GroupPurchaseCategoryBase):
+class GroupPurchaseCategoryBaseInternal(GroupPurchaseCategoryBaseExternal):
     group_id: Annotated[
         int,
         Field(
@@ -46,19 +46,19 @@ class GroupPurchaseCategoryInternal(GroupPurchaseCategoryBase):
     ]
 
 
-class GroupPurchaseCategory(TimestampSchema, GroupPurchaseCategoryInternal):
+class GroupPurchaseCategory(TimestampSchema, GroupPurchaseCategoryBaseInternal):
     pass
 
 
-class GroupPurchaseCategoryRead(GroupPurchaseCategoryExternal):
+class GroupPurchaseCategoryRead(GroupPurchaseCategoryBaseExternal):
     pass
 
 
-class GroupPurchaseCategoryCreate(GroupPurchaseCategoryExternal):
+class GroupPurchaseCategoryCreate(GroupPurchaseCategoryBaseExternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class GroupPurchaseCategoryCreateInternal(GroupPurchaseCategoryInternal):
+class GroupPurchaseCategoryCreateInternal(GroupPurchaseCategoryBaseInternal):
     model_config = ConfigDict(extra="forbid")
 
 
