@@ -106,3 +106,37 @@ async def create_purchase_category(
     )
 
     return purchase_category_model
+
+
+@router.get(
+    "/purchase-category",
+    response_model=PaginatedListResponse[PurchaseCategoryRead],
+)
+async def get_purchase_categories(
+    *,
+    request: Request,
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+    page: int = Query(ge=1, default=1),
+    items_per_page: int = Query(ge=1, le=100, default=10),
+) -> Any:
+    # Get the purchase categories
+    user_purchase_category_join_config = JoinConfig(
+        model=UserPurchaseCategoryModel,
+        join_on=(
+            UserPurchaseCategoryModel.purchase_category_id
+            == PurchaseCategoryModel.id
+        ),
+        schema_to_select=BaseModel,
+        filters={"user_id": current_user.id},
+    )
+    crud_data: dict[str, Any] = await crud_purchase_categories.get_multi_joined(
+        db=db,
+        is_deleted=False,
+        joins_config=[user_purchase_category_join_config],
+        return_as_model=True,
+        schema_to_select=PurchaseCategoryRead,
+    )
+    return paginated_response(
+        crud_data=crud_data, page=page, items_per_page=items_per_page
+    )
