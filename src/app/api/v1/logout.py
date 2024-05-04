@@ -9,7 +9,7 @@ from ...core.exceptions.http_exceptions import UnauthorizedException
 from ...core.schemas.utils import Message
 from ...core.security import blacklist_token, oauth2_scheme
 
-router = APIRouter(tags=["login"])
+router = APIRouter(tags=["Login"])
 
 
 @router.post("/logout", response_model=Message)

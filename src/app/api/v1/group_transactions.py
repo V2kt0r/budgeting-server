@@ -1,7 +1,7 @@
 import uuid as uuid_pkg
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastcrud import JoinConfig
 from fastcrud.paginated import (
     PaginatedListResponse,
@@ -22,7 +22,6 @@ from ...core.exceptions.http_exceptions import (
     ForbiddenException,
     NotFoundException,
 )
-from ...core.schemas.utils import Message
 from ...crud.crud_groups import crud_groups
 from ...crud.crud_purchase_categories import crud_purchase_categories
 from ...crud.crud_tags import crud_tags
@@ -48,23 +47,17 @@ from ...models.tag import Tag as TagModel
 from ...models.transaction import Transaction as TransactionModel
 from ...schemas.group import Group as GroupSchema
 from ...schemas.links.group_tag import GroupTagCreateInternal
-from ...schemas.links.group_transaction import (
-    GroupTransactionCreateInternal,
-)
+from ...schemas.links.group_transaction import GroupTransactionCreateInternal
 from ...schemas.links.transaction_tag import TransactionTagCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
 )
-from ...schemas.purchase_category import PurchaseCategoryRead
 from ...schemas.tag import Tag as TagSchema
 from ...schemas.tag import TagCreateInternal, TagRead
-from ...schemas.transaction import Transaction as TransactionSchema
 from ...schemas.transaction import (
     TransactionCreate,
     TransactionCreateInternal,
     TransactionRead,
-    TransactionUpdate,
-    TransactionUpdateInternal,
 )
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
@@ -73,7 +66,7 @@ router = APIRouter(tags=["Group Transactions"])
 
 
 @router.post(
-    "/groups/{group_uuid}/transactions",
+    "/group/{group_uuid}/transactions",
     response_model=TransactionRead,
     status_code=201,
 )
@@ -218,7 +211,7 @@ async def add_group_transaction(
 
 
 @router.get(
-    "/groups/{group_uuid}/transactions",
+    "/group/{group_uuid}/transactions",
     response_model=PaginatedListResponse[TransactionRead],
 )
 async def get_group_transactions(

@@ -3,86 +3,34 @@ from typing import Annotated, Any
 
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
-    Header,
     Path,
     Query,
     Request,
     Response,
 )
 from fastcrud import JoinConfig
-from fastcrud.paginated import (
-    PaginatedListResponse,
-    compute_offset,
-    paginated_response,
-)
-from pydantic import BaseModel, Field
-from sqlalchemy import func, not_, select, true
+from fastcrud.paginated import PaginatedListResponse, paginated_response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models.user import User as UserModel
 
 from ...core.db.database import async_get_db
 from ...core.exceptions.http_exceptions import (
-    CustomException,
     ForbiddenException,
     NotFoundException,
 )
 from ...core.schemas.utils import Message
 from ...crud.crud_groups import crud_groups
-from ...crud.crud_purchase_categories import crud_purchase_categories
-from ...crud.crud_tags import crud_tags
-from ...crud.crud_transactions import crud_transactions
 from ...crud.crud_users import crud_users
-from ...crud.links.crud_group_purchase_category import (
-    crud_group_purchase_category,
-)
-from ...crud.links.crud_group_tag import crud_group_tag
-from ...crud.links.crud_group_transaction import crud_group_transactions
 from ...crud.links.crud_group_user import crud_group_user
-from ...crud.links.crud_transaction_tag import crud_transaction_tag
-from ...models.links.group_purchase_category import (
-    GroupPurchaseCategory as GroupPurchaseCategoryModel,
-)
-from ...models.links.group_tag import GroupTag as GroupTagModel
-from ...models.links.group_transaction import (
-    GroupTransaction as GroupTransactionModel,
-)
 from ...models.links.group_user import UserRole
 from ...models.links.group_user import GroupUser as GroupUserModel
-from ...models.links.transaction_tag import (
-    TransactionTag as TransactionTagModel,
-)
-from ...models.purchase_category import (
-    PurchaseCategory as PurchaseCategoryModel,
-)
-from ...models.tag import Tag as TagModel
-from ...models.transaction import Transaction as TransactionModel
 from ...schemas.group import Group as GroupSchema
-from ...schemas.links.group_tag import GroupTagCreateInternal
-from ...schemas.links.group_transaction import (
-    GroupTransactionCreateInternal,
-)
 from ...schemas.links.group_user import (
     GroupUserBase,
     GroupUserCreateInternal,
     GroupUserUpdateInternal,
-)
-from ...schemas.links.transaction_tag import TransactionTagCreateInternal
-from ...schemas.purchase_category import (
-    PurchaseCategory as PurchaseCategorySchema,
-)
-from ...schemas.purchase_category import PurchaseCategoryRead
-from ...schemas.tag import Tag as TagSchema
-from ...schemas.tag import TagCreateInternal, TagRead
-from ...schemas.transaction import Transaction as TransactionSchema
-from ...schemas.transaction import (
-    TransactionCreate,
-    TransactionCreateInternal,
-    TransactionRead,
-    TransactionUpdate,
-    TransactionUpdateInternal,
 )
 from ...schemas.user import User as UserSchema, UserReadWithUserRole
 from ..dependencies import get_current_user

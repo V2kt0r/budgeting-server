@@ -18,7 +18,7 @@ from ...core.security import (
 )
 from ...schemas.user import User
 
-router = APIRouter(tags=["login"])
+router = APIRouter(tags=["Login"])
 
 
 @router.post("/login", response_model=Token)

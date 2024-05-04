@@ -29,7 +29,7 @@ from ...schemas.links.group_user import GroupUserBase, GroupUserCreateInternal
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
 
-router = APIRouter(tags=["group"])
+router = APIRouter(tags=["Group"])
 
 
 @router.post("/group", response_model=GroupRead, status_code=201)

@@ -59,15 +59,11 @@ from ...schemas.transaction import (
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
 
-router = APIRouter(tags=["transactions"])
+router = APIRouter(tags=["Transactions"])
 
 
-@router.post(
-    "/transaction",
-    response_model=TransactionRead,
-    status_code=201,
-)
-async def write_user_transaction(
+@router.post("/transaction", response_model=TransactionRead, status_code=201)
+async def create_user_transaction(
     *,
     request: Request,
     transaction_create: TransactionCreate,
@@ -180,7 +176,7 @@ async def write_user_transaction(
 
 
 @router.get(
-    "/transactions", response_model=PaginatedListResponse[TransactionRead]
+    "/transaction", response_model=PaginatedListResponse[TransactionRead]
 )
 async def get_user_transactions(
     *,
@@ -376,7 +372,7 @@ async def get_user_transactions(
     )
 
 
-@router.get("/transactions/{transaction_uuid}", response_model=TransactionRead)
+@router.get("/transaction/{transaction_uuid}", response_model=TransactionRead)
 async def get_transaction(
     *,
     request: Request,
@@ -446,10 +442,7 @@ async def get_transaction(
     return TransactionRead(**transaction_dict)
 
 
-@router.put(
-    "/transactions/{transaction_uuid}",
-    response_model=Message,
-)
+@router.put("/transaction/{transaction_uuid}", response_model=Message)
 async def update_transaction(
     *,
     request: Request,
@@ -587,10 +580,7 @@ async def update_transaction(
     return Message(message="Transaction updated successfully.")
 
 
-@router.delete(
-    "/transactions/{transaction_uuid}",
-    response_model=Message,
-)
+@router.delete("/transaction/{transaction_uuid}", response_model=Message)
 async def delete_transaction(
     *,
     request: Request,

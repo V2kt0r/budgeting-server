@@ -32,11 +32,11 @@ from ...schemas.user import (
     UserUpdate,
 )
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["Users"])
 
 
 @router.post("/user", response_model=UserRead, status_code=201)
-async def write_user(
+async def create_user(
     request: Request,
     user_create: UserCreate,
     db: Annotated[AsyncSession, Depends(async_get_db)],
@@ -72,8 +72,8 @@ async def write_user(
     return user_model
 
 
-@router.get("/users", response_model=PaginatedListResponse[UserRead])
-async def read_users(
+@router.get("/user", response_model=PaginatedListResponse[UserRead])
+async def get_users(
     request: Request,
     db: Annotated[AsyncSession, Depends(async_get_db)],
     page: Annotated[int, Query(ge=1)] = 1,
@@ -94,7 +94,7 @@ async def read_users(
 
 
 @router.get("/user/me/", response_model=UserRead)
-async def read_users_me(
+async def get_users_me(
     request: Request,
     current_user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> Any:
@@ -102,7 +102,7 @@ async def read_users_me(
 
 
 @router.get("/user/{username}", response_model=UserRead)
-async def read_user(
+async def get_user(
     request: Request,
     username: str,
     db: Annotated[AsyncSession, Depends(async_get_db)],
@@ -121,7 +121,7 @@ async def read_user(
 
 
 @router.patch("/user/{username}", response_model=Message)
-async def patch_user(
+async def update_user(
     request: Request,
     user_update: UserUpdate,
     username: str,
@@ -160,7 +160,7 @@ async def patch_user(
 
 
 @router.delete("/user/{username}", response_model=Message)
-async def erase_user(
+async def delete_user(
     request: Request,
     username: str,
     current_user: Annotated[UserSchema, Depends(get_current_user)],
@@ -189,7 +189,7 @@ async def erase_user(
     dependencies=[Depends(get_current_superuser)],
     response_model=Message,
 )
-async def erase_db_user(
+async def db_delete_user(
     request: Request,
     username: str,
     db: Annotated[AsyncSession, Depends(async_get_db)],
@@ -210,7 +210,7 @@ async def erase_db_user(
     # TODO: Add pagination
     # TODO: Add response model
 )
-async def read_user_rate_limits(
+async def get_user_rate_limits(
     request: Request,
     username: str,
     db: Annotated[AsyncSession, Depends(async_get_db)],
@@ -246,7 +246,7 @@ async def read_user_rate_limits(
 # TODO: Add response model
 # TODO: Figure out how to handle the ruff warning on join_model
 @router.get("/user/{username}/tier")
-async def read_user_tier(
+async def get_user_tier(
     request: Request,
     username: str,
     db: Annotated[AsyncSession, Depends(async_get_db)],
@@ -281,7 +281,7 @@ async def read_user_tier(
     dependencies=[Depends(get_current_superuser)],
     response_model=Message,
 )
-async def patch_user_tier(
+async def update_user_tier(
     request: Request,
     username: str,
     user_tier_update: UserTierUpdate,
