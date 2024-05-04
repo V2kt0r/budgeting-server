@@ -283,3 +283,81 @@ async def update_group_purchase_category(
         ),
     )
     return Message(message="The purchase category has been updated.")
+
+
+@router.delete(
+    "/group/{group_uuid}/purchase-category/{purchase_category_uuid}",
+    response_model=Message,
+)
+async def delete_group_purchase_category(
+    *,
+    request: Request,
+    group_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="UUID of the group to which the purchase category belongs.",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    purchase_category_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="UUID of the purchase category to delete.",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if group exists
+    group_exists: bool = await crud_groups.exists(
+        db=db, uuid=group_uuid, is_deleted=False
+    )
+    if not group_exists:
+        raise NotFoundException("The group with this UUID does not exist.")
+
+    # Check if user is a member of the group
+    user_is_member: bool = await crud_group_user.exists(
+        db=db,
+        user_id=current_user.id,
+        group_uuid=group_uuid,
+    )
+    if not user_is_member:
+        raise ForbiddenException(
+            "You are not a member of the group with this UUID."
+        )
+
+    # Check if purchase category exists
+    purchase_category_exists: bool = await crud_purchase_categories.exists(
+        db=db, uuid=purchase_category_uuid, is_deleted=False
+    )
+    if not purchase_category_exists:
+        raise NotFoundException(
+            "The purchase category with this UUID does not exist."
+        )
+
+    # Check if group purchase category link exists
+    group_purchase_category_exists: bool = (
+        await crud_group_purchase_category.exists(
+            db=db,
+            group_uuid=group_uuid,
+            purchase_category_uuid=purchase_category_uuid,
+        )
+    )
+    if not group_purchase_category_exists:
+        raise ForbiddenException(
+            "The purchase category with this UUID does not belong to the group with this UUID."
+        )
+
+    # Check if purchase category is linked to any transactions
+    transactions_linked: bool = await crud_transactions.exists(
+        db=db, purchase_category_uuid=purchase_category_uuid
+    )
+    if transactions_linked:
+        raise ForbiddenException(
+            "The purchase category is linked to transactions."
+        )
+
+    # Delete the purchase category
+    await crud_purchase_categories.delete(db=db, uuid=purchase_category_uuid)
+    return Message(message="The purchase category has been deleted.")
