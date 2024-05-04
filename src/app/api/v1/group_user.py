@@ -171,11 +171,7 @@ async def add_group_user(
     return Message(message="User added to group")
 
 
-@router.put(
-    "/group/{group_uuid}/users/{user_uuid}",
-    response_model=Message,
-    status_code=200,
-)
+@router.put("/group/{group_uuid}/users/{user_uuid}", response_model=Message)
 async def change_group_user_role(
     *,
     request: Request,
@@ -250,3 +246,62 @@ async def change_group_user_role(
         object=GroupUserUpdateInternal(user_role=user_role),
     )
     return Message(message="User role updated")
+
+
+@router.delete("/group/{group_uuid}/users/{user_uuid}", response_model=Message)
+async def remove_group_user(
+    *,
+    request: Request,
+    group_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the group",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    user_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the user",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if group exists
+    group_exists: bool = await crud_groups.exists(
+        db=db, uuid=group_uuid, is_deleted=False
+    )
+    if not group_exists:
+        raise NotFoundException("The group with this UUID does not exist")
+
+    # Check if user is in the group and is an admin
+    user_has_permission: bool = await crud_group_user.exists(
+        db=db,
+        group_uuid=group_uuid,
+        user_uuid=current_user.uuid,
+        user_role=UserRole.ADMIN,
+    )
+    if not user_has_permission:
+        raise ForbiddenException()
+
+    # Check if user exists
+    user_exists: bool = await crud_users.exists(
+        db=db, uuid=user_uuid, is_deleted=False
+    )
+    if not user_exists:
+        raise NotFoundException("The user with this UUID does not exist")
+
+    # Check if user is in the group
+    user_in_group: bool = await crud_group_user.exists(
+        db=db, group_uuid=group_uuid, user_uuid=user_uuid
+    )
+    if not user_in_group:
+        raise NotFoundException("The user is not in the group")
+
+    # Remove user from group
+    await crud_group_user.delete(
+        db=db, group_uuid=group_uuid, user_uuid=user_uuid
+    )
+    return Message(message="User removed from group")
