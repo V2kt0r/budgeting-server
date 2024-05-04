@@ -68,7 +68,7 @@ class PurchaseCategory(
     pass
 
 
-class PurchaseCategoryRead(PurchaseCategoryBaseExternal):
+class PurchaseCategoryRead(UUIDSchema, PurchaseCategoryBaseExternal):
     pass
 
 

@@ -50,6 +50,7 @@ from ...schemas.links.user_tag import UserTagCreateInternal
 from ...schemas.links.user_transaction import UserTransactionCreateInternal
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
+    PurchaseCategoryUpdate,
 )
 from ...schemas.purchase_category import (
     PurchaseCategoryCreate,
@@ -140,3 +141,53 @@ async def get_purchase_categories(
     return paginated_response(
         crud_data=crud_data, page=page, items_per_page=items_per_page
     )
+
+
+@router.put(
+    "/purchase-category/{purchase_category_uuid}", response_model=Message
+)
+async def update_purchase_category(
+    *,
+    request: Request,
+    purchase_category_uuid: Annotated[
+        uuid_pkg.UUID,
+        Path(
+            description="The UUID of the purchase category to update.",
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+        ),
+    ],
+    purchase_category_update: Annotated[PurchaseCategoryUpdate, Body()],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Message:
+    # Check if purchase category exists
+    purchase_category_exists: bool = await crud_purchase_categories.exists(
+        db=db, uuid=purchase_category_uuid, is_deleted=False
+    )
+    if not purchase_category_exists:
+        raise NotFoundException(
+            "The purchase category with this UUID does not exist."
+        )
+
+    # Check if user has access to purchase category
+    user_purchase_category_exists: bool = (
+        await crud_user_purchase_category.exists(
+            db=db,
+            user_id=current_user.id,
+            purchase_category_uuid=purchase_category_uuid,
+        )
+    )
+    if not user_purchase_category_exists:
+        raise ForbiddenException(
+            "You do not have access to this purchase category."
+        )
+
+    # Update the purchase category
+    await crud_purchase_categories.update(
+        db=db,
+        uuid=purchase_category_uuid,
+        object=PurchaseCategoryUpdate.model_validate(
+            purchase_category_update.model_dump()
+        ),
+    )
+    return Message(message="The purchase category has been updated.")
