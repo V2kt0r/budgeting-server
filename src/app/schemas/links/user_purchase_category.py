@@ -10,7 +10,7 @@ class UserPurchaseCategoryBase(BaseModel):
     pass
 
 
-class UserPurchaseCategoryExternal(UserPurchaseCategoryBase):
+class UserPurchaseCategoryBaseExternal(UserPurchaseCategoryBase):
     user_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
@@ -27,7 +27,7 @@ class UserPurchaseCategoryExternal(UserPurchaseCategoryBase):
     ]
 
 
-class UserPurchaseCategoryInternal(UserPurchaseCategoryBase):
+class UserPurchaseCategoryBaseInternal(UserPurchaseCategoryBaseExternal):
     user_id: Annotated[
         int,
         Field(
@@ -46,19 +46,19 @@ class UserPurchaseCategoryInternal(UserPurchaseCategoryBase):
     ]
 
 
-class UserPurchaseCategory(TimestampSchema, UserPurchaseCategoryInternal):
+class UserPurchaseCategory(TimestampSchema, UserPurchaseCategoryBaseInternal):
     pass
 
 
-class UserPurchaseCategoryRead(UserPurchaseCategoryExternal):
+class UserPurchaseCategoryRead(UserPurchaseCategoryBaseExternal):
     pass
 
 
-class UserPurchaseCategoryCreate(UserPurchaseCategoryExternal):
+class UserPurchaseCategoryCreate(UserPurchaseCategoryBaseExternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class UserPurchaseCategoryCreateInternal(UserPurchaseCategoryInternal):
+class UserPurchaseCategoryCreateInternal(UserPurchaseCategoryBaseInternal):
     model_config = ConfigDict(extra="forbid")
 
 
