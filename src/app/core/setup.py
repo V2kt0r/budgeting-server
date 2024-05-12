@@ -4,6 +4,7 @@ from typing import Any
 
 import anyio
 import fastapi
+from fastapi.routing import APIRoute
 import redis.asyncio as redis
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -74,6 +75,12 @@ async def close_redis_rate_limit_pool() -> None:
 async def set_threadpool_tokens(number_of_tokens: int = 100) -> None:
     limiter = anyio.to_thread.current_default_thread_limiter()
     limiter.total_tokens = number_of_tokens
+
+
+def custom_generate_unique_id(route: APIRoute):
+    if len(route.tags) == 0:
+        return route.name
+    return f"{route.tags[0]}-{route.name}"
 
 
 def lifespan_factory(
@@ -197,7 +204,11 @@ def create_application(
         settings, create_tables_on_start=create_tables_on_start
     )
 
-    application = FastAPI(lifespan=lifespan, **kwargs)
+    application = FastAPI(
+        lifespan=lifespan,
+        generate_unique_id_function=custom_generate_unique_id,
+        **kwargs,
+    )
     application.include_router(router)
 
     if isinstance(settings, ClientSideCacheSettings):
