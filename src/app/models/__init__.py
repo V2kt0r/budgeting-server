@@ -6,7 +6,6 @@ from .links.group_transaction import GroupTransaction  # noqa: F401
 from .links.group_user import GroupUser  # noqa: F401
 from .links.transaction_item_tag import TransactionItemTag  # noqa: F401
 from .links.transaction_receipt import TransactionReceipt  # noqa: F401
-from .links.transaction_tag import TransactionTag  # noqa: F401
 from .links.transaction_transaction_item import (
     TransactionTransactionItem,  # noqa: F401
 )
@@ -31,7 +30,6 @@ __all__ = [
     "GroupUser",
     "TransactionItemTag",
     "TransactionReceipt",
-    "TransactionTag",
     "TransactionTransactionItem",
     "UserPurchaseCategory",
     "UserTag",

@@ -21,15 +21,11 @@ from ...core.schemas.utils import Message
 from ...crud.crud_purchase_categories import crud_purchase_categories
 from ...crud.crud_tags import crud_tags
 from ...crud.crud_transactions import crud_transactions
-from ...crud.links.crud_transaction_tag import crud_transaction_tag
 from ...crud.links.crud_user_purchase_category import (
     crud_user_purchase_category,
 )
 from ...crud.links.crud_user_tag import crud_user_tag
 from ...crud.links.crud_user_transaction import crud_user_transaction
-from ...models.links.transaction_tag import (
-    TransactionTag as TransactionTagModel,
-)
 from ...models.links.user_purchase_category import (
     UserPurchaseCategory as UserPurchaseCategoryModel,
 )
@@ -42,7 +38,6 @@ from ...models.purchase_category import (
 )
 from ...models.tag import Tag as TagModel
 from ...models.transaction import Transaction as TransactionModel
-from ...schemas.links.transaction_tag import TransactionTagCreateInternal
 from ...schemas.links.user_purchase_category import (
     UserPurchaseCategoryCreateInternal,
 )

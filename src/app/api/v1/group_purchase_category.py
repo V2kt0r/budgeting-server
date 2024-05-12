@@ -26,7 +26,6 @@ from ...crud.links.crud_group_purchase_category import (
     crud_group_purchase_category,
 )
 from ...crud.links.crud_group_user import crud_group_user
-from ...crud.links.crud_transaction_tag import crud_transaction_tag
 from ...crud.links.crud_user_purchase_category import (
     crud_user_purchase_category,
 )
@@ -34,9 +33,6 @@ from ...crud.links.crud_user_tag import crud_user_tag
 from ...crud.links.crud_user_transaction import crud_user_transaction
 from ...models.links.group_purchase_category import (
     GroupPurchaseCategory as GroupPurchaseCategoryModel,
-)
-from ...models.links.transaction_tag import (
-    TransactionTag as TransactionTagModel,
 )
 from ...models.links.user_purchase_category import (
     UserPurchaseCategory as UserPurchaseCategoryModel,
@@ -54,7 +50,6 @@ from ...schemas.group import Group as GroupSchema
 from ...schemas.links.group_purchase_category import (
     GroupPurchaseCategoryCreateInternal,
 )
-from ...schemas.links.transaction_tag import TransactionTagCreateInternal
 from ...schemas.links.user_purchase_category import (
     UserPurchaseCategoryCreateInternal,
 )

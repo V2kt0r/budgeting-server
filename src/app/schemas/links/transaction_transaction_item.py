@@ -10,7 +10,7 @@ class TransactionTransactionItemBase(BaseModel):
     pass
 
 
-class TransactionTransactionItemExternal(TransactionTransactionItemBase):
+class TransactionTransactionItemBaseExternal(TransactionTransactionItemBase):
     transaction_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
@@ -27,7 +27,9 @@ class TransactionTransactionItemExternal(TransactionTransactionItemBase):
     ]
 
 
-class TransactionTransactionItemInternal(TransactionTransactionItemBase):
+class TransactionTransactionItemBaseInternal(
+    TransactionTransactionItemBaseExternal
+):
     transaction_id: Annotated[
         int,
         Field(
@@ -47,21 +49,21 @@ class TransactionTransactionItemInternal(TransactionTransactionItemBase):
 
 
 class TransactionTransactionItem(
-    TimestampSchema, TransactionTransactionItemInternal
+    TimestampSchema, TransactionTransactionItemBaseInternal
 ):
     pass
 
 
-class TransactionTransactionItemRead(TransactionTransactionItemExternal):
+class TransactionTransactionItemRead(TransactionTransactionItemBaseExternal):
     pass
 
 
-class TransactionTransactionItemCreate(TransactionTransactionItemExternal):
+class TransactionTransactionItemCreate(TransactionTransactionItemBaseExternal):
     model_config = ConfigDict(extra="forbid")
 
 
 class TransactionTransactionItemCreateInternal(
-    TransactionTransactionItemInternal
+    TransactionTransactionItemBaseInternal
 ):
     model_config = ConfigDict(extra="forbid")
 

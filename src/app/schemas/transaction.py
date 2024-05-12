@@ -9,12 +9,9 @@ from ..core.schemas.mixins import (
     UUIDSchema,
 )
 from ..models.transaction import Currency
-from ..schemas.purchase_category import PurchaseCategoryBase
 from .mixins.misc import CurrentTimeSchema
-from .mixins.purchase_category import (
-    PurchaseCategoryIDSchema,
-    PurchaseCategoryUUIDSchema,
-)
+from .mixins.purchase_category import PurchaseCategoryOptionalUUIDSchema
+from .transaction_item import TransactionItemCreate, TransactionItemRead
 
 
 class TransactionBase(CurrentTimeSchema, BaseModel):
@@ -55,13 +52,11 @@ class TransactionBase(CurrentTimeSchema, BaseModel):
     ]
 
 
-class TransactionBaseExternal(PurchaseCategoryUUIDSchema, TransactionBase):
+class TransactionBaseExternal(TransactionBase):
     pass
 
 
-class TransactionBaseInternal(
-    PurchaseCategoryIDSchema, TransactionBaseExternal
-):
+class TransactionBaseInternal(TransactionBaseExternal):
     pass
 
 
@@ -75,25 +70,32 @@ class Transaction(
     pass
 
 
-class TransactionRead(
-    PurchaseCategoryBase, UUIDSchema, TransactionBaseExternal
-):
-    tag_names: Annotated[
-        list[str],
+class TransactionRead(UUIDSchema, TransactionBaseExternal):
+    transaction_items: Annotated[
+        list[TransactionItemRead],
         Field(
-            default=None,
-            description="List of tags associated with the transaction.",
+            default_factory=lambda: [],
+            description="List of items associated with the transaction.",
         ),
     ]
 
 
-class TransactionCreate(TransactionBaseExternal):
+class TransactionCreate(
+    PurchaseCategoryOptionalUUIDSchema, TransactionBaseExternal
+):
     tag_names: Annotated[
         list[str],
         Field(
-            default=None,
+            default_factory=lambda: [],
             description="List of tags associated with the transaction.",
             exclude=True,
+        ),
+    ]
+    transaction_items: Annotated[
+        list[TransactionItemCreate],
+        Field(
+            default_factory=lambda: [],
+            description="List of items associated with the transaction.",
         ),
     ]
 
@@ -102,7 +104,7 @@ class TransactionCreateInternal(TransactionBaseInternal):
     pass
 
 
-class TransactionUpdate(PurchaseCategoryUUIDSchema, BaseModel):
+class TransactionUpdate(PurchaseCategoryOptionalUUIDSchema, BaseModel):
     amount: Annotated[
         float,
         Field(
@@ -145,16 +147,21 @@ class TransactionUpdate(PurchaseCategoryUUIDSchema, BaseModel):
     tag_names: Annotated[
         list[str],
         Field(
-            default=None,
+            default_factory=lambda: [],
             description="List of tags associated with the transaction.",
             exclude=True,
         ),
     ]
+    transaction_items: Annotated[
+        list[TransactionItemCreate],
+        Field(
+            default_factory=lambda: [],
+            description="List of items associated with the transaction.",
+        ),
+    ]
 
 
-class TransactionUpdateInternal(
-    PurchaseCategoryIDSchema, PurchaseCategoryUUIDSchema, BaseModel
-):
+class TransactionUpdateInternal(BaseModel):
     amount: Annotated[
         float,
         Field(
