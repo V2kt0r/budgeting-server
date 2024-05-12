@@ -11,14 +11,15 @@ from sqlalchemy import func, not_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.db.database import async_get_db
+from ...models.links.group_transaction import (
+    GroupTransaction as GroupTransactionModel,
+)
+from ...models.links.group_user import GroupUser as GroupUserModel
 from ...models.links.transaction_item_tag import (
     TransactionItemTag as TransactionItemTagModel,
 )
 from ...models.links.transaction_transaction_item import (
     TransactionTransactionItem as TransactionTransactionItemModel,
-)
-from ...models.links.user_transaction import (
-    UserTransaction as UserTransactionModel,
 )
 from ...models.purchase_category import (
     PurchaseCategory as PurchaseCategoryModel,
@@ -26,6 +27,7 @@ from ...models.purchase_category import (
 from ...models.tag import Tag as TagModel
 from ...models.transaction import Transaction as TransactionModel
 from ...models.transaction_item import TransactionItem as TransactionItemModel
+from ...schemas.group import Group as GroupSchema
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
 )
@@ -37,22 +39,24 @@ from ...schemas.transaction_item import (
 )
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
+from .dependencies.group import get_non_deleted_user_group
 from .dependencies.purchase_category import (
-    get_optional_non_deleted_user_purchase_category,
+    get_optional_non_deleted_group_purchase_category,
 )
-from .dependencies.tag import get_non_deleted_user_tags
+from .dependencies.tag import get_non_deleted_group_tags
 
-router = APIRouter(tags=["User Transaction Items"])
+router = APIRouter(tags=["Group Transaction Items"])
 
 
 @router.get(
-    "/transaction-items",
+    "/group/{group_uuid/transaction-items",
     response_model=PaginatedListResponse[
         TransactionItemReadWithTransactionData
     ],
 )
-async def get_user_transaction_items(
+async def get_group_transaction_items(
     *,
+    group_schema: Annotated[GroupSchema, Depends(get_non_deleted_user_group)],
     before: datetime | None = Query(
         default=None,
         description="Get transactions before this date",
@@ -63,10 +67,12 @@ async def get_user_transaction_items(
         description="Get transactions after this date",
         examples=[datetime.now(UTC) - timedelta(days=7)],
     ),
-    tag_schemas: Annotated[list[TagSchema], Depends(get_non_deleted_user_tags)],
+    tag_schemas: Annotated[
+        list[TagSchema], Depends(get_non_deleted_group_tags)
+    ],
     purchase_category_schema: Annotated[
         PurchaseCategorySchema,
-        Depends(get_optional_non_deleted_user_purchase_category),
+        Depends(get_optional_non_deleted_group_purchase_category),
     ],
     current_user: Annotated[UserSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(async_get_db)],
@@ -83,11 +89,16 @@ async def get_user_transaction_items(
         .outerjoin(TransactionTransactionItemModel)
         .outerjoin(TransactionModel)
         .add_columns(TransactionModel.uuid, TransactionModel.timestamp)
-        .outerjoin(UserTransactionModel)
+        .outerjoin(GroupTransactionModel)
+        .outerjoin(
+            GroupUserModel,
+            GroupUserModel.group_id == GroupTransactionModel.group_id,
+        )
         .outerjoin(TransactionItemTagModel)
         .outerjoin(TagModel)
         .filter(
-            UserTransactionModel.user_id == current_user.id,
+            GroupUserModel.user_id == current_user.id,
+            GroupTransactionModel.group_id == group_schema.id,
             not_(TransactionModel.is_deleted),
             not_(TransactionItemModel.is_deleted),
             not_(TagModel.is_deleted),
