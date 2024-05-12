@@ -10,8 +10,8 @@ class TransactionItemTagBase(BaseModel):
     pass
 
 
-class TransactionItemTagExternal(TransactionItemTagBase):
-    transaction_uuid: Annotated[
+class TransactionItemTagBaseExternal(TransactionItemTagBase):
+    transaction_item_uuid: Annotated[
         uuid_pkg.UUID,
         Field(
             examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
@@ -27,8 +27,8 @@ class TransactionItemTagExternal(TransactionItemTagBase):
     ]
 
 
-class TransactionItemTagInternal(TransactionItemTagBase):
-    transaction_id: Annotated[
+class TransactionItemTagBaseInternal(TransactionItemTagBaseExternal):
+    transaction_item_id: Annotated[
         int,
         Field(
             ge=1,
@@ -46,19 +46,19 @@ class TransactionItemTagInternal(TransactionItemTagBase):
     ]
 
 
-class TransactionItemTag(TimestampSchema, TransactionItemTagInternal):
+class TransactionItemTag(TimestampSchema, TransactionItemTagBaseInternal):
     pass
 
 
-class TransactionItemTagRead(TransactionItemTagExternal):
+class TransactionItemTagRead(TransactionItemTagBaseExternal):
     pass
 
 
-class TransactionItemTagCreate(TransactionItemTagExternal):
+class TransactionItemTagCreate(TransactionItemTagBaseExternal):
     model_config = ConfigDict(extra="forbid")
 
 
-class TransactionItemTagCreateInternal(TransactionItemTagInternal):
+class TransactionItemTagCreateInternal(TransactionItemTagBaseInternal):
     model_config = ConfigDict(extra="forbid")
 
 

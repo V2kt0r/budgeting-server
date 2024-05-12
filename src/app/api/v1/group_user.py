@@ -175,7 +175,7 @@ async def get_group_users(
         db=db,
         is_deleted=False,
         joins_config=[group_user_join_config],
-        return_as_model=False,
+        return_as_model=True,
         schema_to_select=UserReadWithUserRole,
     )
     return paginated_response(

@@ -10,7 +10,6 @@ from ..core.models.mixins import (
     UUIDMixin,
 )
 from .mixins.misc import TimeMixin
-from .mixins.purchase_category import PurchaseCategoryMixin
 
 
 class Currency(Enum):
@@ -21,7 +20,6 @@ class Currency(Enum):
 
 class Transaction(
     TimeMixin,
-    PurchaseCategoryMixin,
     IDMixin,
     UUIDMixin,
     TimestampMixin,

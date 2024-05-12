@@ -77,7 +77,7 @@ class TransactionItemRead(
     tag_names: Annotated[
         list[str],
         Field(
-            default=None,
+            default_factory=lambda: [],
             description="List of tags associated with the item.",
         ),
     ]
@@ -87,7 +87,7 @@ class TransactionItemCreate(TransactionItemBaseExternal):
     tag_names: Annotated[
         list[str],
         Field(
-            default=None,
+            default_factory=lambda: [],
             description="List of tags associated with the item.",
             exclude=True,
         ),
@@ -131,7 +131,7 @@ class TransactionItemUpdate(PurchaseCategoryOptionalUUIDSchema, BaseModel):
     tag_names: Annotated[
         list[str],
         Field(
-            default=None,
+            default_factory=lambda: [],
             description="List of tags associated with the item.",
             exclude=True,
         ),
