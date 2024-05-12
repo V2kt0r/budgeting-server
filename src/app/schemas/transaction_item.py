@@ -1,3 +1,4 @@
+import uuid as uuid_pkg
 from typing import Annotated
 
 from pydantic import BaseModel, Field
@@ -9,6 +10,7 @@ from ..core.schemas.mixins import (
     UUIDSchema,
 )
 from ..schemas.purchase_category import PurchaseCategoryBase
+from .mixins.misc import TimeSchema
 from .mixins.purchase_category import (
     PurchaseCategoryIDSchema,
     PurchaseCategoryOptionalIDSchema,
@@ -79,6 +81,16 @@ class TransactionItemRead(
         Field(
             default_factory=lambda: [],
             description="List of tags associated with the item.",
+        ),
+    ]
+
+
+class TransactionItemReadWithTransactionData(TimeSchema, TransactionItemRead):
+    transaction_uuid: Annotated[
+        uuid_pkg.UUID,
+        Field(
+            examples=[uuid_pkg.uuid4(), uuid_pkg.uuid4(), uuid_pkg.uuid4()],
+            description="UUID of the transaction.",
         ),
     ]
 
