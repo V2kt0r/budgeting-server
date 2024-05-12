@@ -5,11 +5,9 @@ from fastapi import APIRouter, Body, Depends, Path, Query, Request
 from fastcrud import JoinConfig
 from fastcrud.paginated import (
     PaginatedListResponse,
-    compute_offset,
     paginated_response,
 )
 from pydantic import BaseModel
-from sqlalchemy import func, not_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.db.database import async_get_db
@@ -20,59 +18,26 @@ from ...core.exceptions.http_exceptions import (
 from ...core.schemas.utils import Message
 from ...crud.crud_groups import crud_groups
 from ...crud.crud_purchase_categories import crud_purchase_categories
-from ...crud.crud_tags import crud_tags
 from ...crud.crud_transactions import crud_transactions
 from ...crud.links.crud_group_purchase_category import (
     crud_group_purchase_category,
 )
 from ...crud.links.crud_group_user import crud_group_user
-from ...crud.links.crud_user_purchase_category import (
-    crud_user_purchase_category,
-)
-from ...crud.links.crud_user_tag import crud_user_tag
-from ...crud.links.crud_user_transaction import crud_user_transaction
 from ...models.links.group_purchase_category import (
     GroupPurchaseCategory as GroupPurchaseCategoryModel,
-)
-from ...models.links.user_purchase_category import (
-    UserPurchaseCategory as UserPurchaseCategoryModel,
-)
-from ...models.links.user_tag import UserTag as UserTagModel
-from ...models.links.user_transaction import (
-    UserTransaction as UserTransactionModel,
 )
 from ...models.purchase_category import (
     PurchaseCategory as PurchaseCategoryModel,
 )
-from ...models.tag import Tag as TagModel
-from ...models.transaction import Transaction as TransactionModel
 from ...schemas.group import Group as GroupSchema
 from ...schemas.links.group_purchase_category import (
     GroupPurchaseCategoryCreateInternal,
-)
-from ...schemas.links.user_purchase_category import (
-    UserPurchaseCategoryCreateInternal,
-)
-from ...schemas.links.user_tag import UserTagCreateInternal
-from ...schemas.links.user_transaction import UserTransactionCreateInternal
-from ...schemas.purchase_category import (
-    PurchaseCategory as PurchaseCategorySchema,
 )
 from ...schemas.purchase_category import (
     PurchaseCategoryCreate,
     PurchaseCategoryCreateInternal,
     PurchaseCategoryRead,
     PurchaseCategoryUpdate,
-)
-from ...schemas.tag import Tag as TagSchema
-from ...schemas.tag import TagCreateInternal, TagRead
-from ...schemas.transaction import Transaction as TransactionSchema
-from ...schemas.transaction import (
-    TransactionCreate,
-    TransactionCreateInternal,
-    TransactionRead,
-    TransactionUpdate,
-    TransactionUpdateInternal,
 )
 from ...schemas.user import User as UserSchema
 from ..dependencies import get_current_user
