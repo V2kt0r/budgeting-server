@@ -230,7 +230,7 @@ async def get_group_transactions(
     "/group/{group_uuid}/transactions/{transaction_uuid}",
     response_model=TransactionRead,
 )
-async def get_transaction(
+async def get_group_transaction(
     *,
     request: Request,
     group_schema: Annotated[GroupSchema, Depends(get_non_deleted_user_group)],
@@ -255,7 +255,7 @@ async def get_transaction(
     "/group/{group_uuid}/transactions/{transaction_uuid}",
     response_model=Message,
 )
-async def update_transaction(
+async def update_group_transaction(
     *,
     request: Request,
     transaction_schema: Annotated[
@@ -353,7 +353,7 @@ async def update_transaction(
     "/group/{group_uuid}/transactions/{transaction_uuid}",
     response_model=Message,
 )
-async def delete_transaction(
+async def delete_group_transaction(
     *,
     request: Request,
     transaction_schema: Annotated[

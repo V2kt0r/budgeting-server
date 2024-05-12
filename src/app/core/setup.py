@@ -186,6 +186,7 @@ def create_application(
     if isinstance(settings, AppSettings):
         to_update = {
             "title": settings.APP_NAME,
+            "version": settings.APP_VERSION,
             "description": settings.APP_DESCRIPTION,
             "contact": {
                 "name": settings.CONTACT_NAME,
