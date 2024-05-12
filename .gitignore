@@ -1,3 +1,9 @@
+# User defined files
+src/scripts/*.json
+src/scripts/*.yaml
+src/scripts/*.yml
+src/scripts/out*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
