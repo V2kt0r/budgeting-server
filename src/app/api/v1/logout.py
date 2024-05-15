@@ -20,7 +20,6 @@ async def logout(
 ) -> Message:
     try:
         await blacklist_token(token=access_token, db=db)
-        response.delete_cookie(key="refresh_token")
 
         return Message(message="Logged out successfully")
 
