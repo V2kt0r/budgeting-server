@@ -10,6 +10,11 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenPair(BaseModel):
+    access_token: Token
+    refresh_token: Token
+
+
 class TokenData(BaseModel):
     username_or_email: str
 
