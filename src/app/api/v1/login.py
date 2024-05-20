@@ -20,6 +20,26 @@ from ...schemas.user import User
 router = APIRouter(tags=["Login"])
 
 
+@router.post("/login-swagger", response_model=Token)
+async def login_for_access_token_swagger(
+    request: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> Token:
+    user: User | None = await authenticate_user(
+        username_or_email=form_data.username, password=form_data.password, db=db
+    )
+    if not user:
+        raise UnauthorizedException("Wrong username, email or password.")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = await create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+
+    return Token(access_token=access_token, token_type="bearer")
+
+
 @router.post("/login", response_model=TokenPair)
 async def login_for_access_token(
     request: Request,
