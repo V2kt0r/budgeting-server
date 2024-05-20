@@ -7,6 +7,7 @@ from .group_transactions import router as group_transactions_router
 from .group_user import router as group_user_router
 from .login import router as login_router
 from .logout import router as logout_router
+from .statistics import router as statistics_router
 from .user_purchase_category import router as user_purchase_category_router
 from .user_transaction_items import router as user_transaction_items_router
 from .user_transactions import router as user_transactions_router
@@ -24,3 +25,4 @@ router.include_router(group_user_router)
 router.include_router(group_purchase_category_router)
 router.include_router(group_transactions_router)
 router.include_router(group_transaction_items_router)
+router.include_router(statistics_router)
