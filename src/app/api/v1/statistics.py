@@ -18,7 +18,7 @@ from ...models.links.user_transaction import (
 from ...models.purchase_category import (
     PurchaseCategory as PurchaseCategoryModel,
 )
-from ...models.transaction import Transaction as TransactionModel
+from ...models.transaction import Currency, Transaction as TransactionModel
 from ...models.transaction_item import TransactionItem as TransactionItemModel
 from ...schemas.group import Group as GroupSchema, GroupRead
 from ...schemas.purchase_category import (
@@ -51,6 +51,11 @@ async def get_purchase_category_statistics(
         list[PurchaseCategoryModel | PurchaseCategorySchema],
         Depends(get_user_purchase_categories),
     ],
+    currency: Currency = Query(
+        default=Currency.HUF,
+        description="Currency to use for the statistics",
+        examples=[currency for currency in Currency],
+    ),
     before: datetime | None = Query(
         default=None,
         description="Get transactions before this date",
@@ -89,6 +94,7 @@ async def get_purchase_category_statistics(
                 not_(TransactionModel.is_deleted),
                 not_(TransactionItemModel.is_deleted),
                 not_(PurchaseCategoryModel.is_deleted),
+                TransactionModel.currency == currency,
             )
             .group_by(PurchaseCategoryModel.id)
         )
@@ -136,6 +142,11 @@ async def get_group_purchase_category_statistics(
         list[PurchaseCategoryModel | PurchaseCategorySchema],
         Depends(get_group_purchase_categories),
     ],
+    currency: Currency = Query(
+        default=Currency.HUF,
+        description="Currency to use for the statistics",
+        examples=[currency for currency in Currency],
+    ),
     before: datetime | None = Query(
         default=None,
         description="Get transactions before this date",
@@ -173,6 +184,7 @@ async def get_group_purchase_category_statistics(
                 not_(TransactionModel.is_deleted),
                 not_(TransactionItemModel.is_deleted),
                 not_(PurchaseCategoryModel.is_deleted),
+                TransactionModel.currency == currency,
             )
             .group_by(PurchaseCategoryModel.id)
         )
