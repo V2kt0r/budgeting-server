@@ -1,6 +1,7 @@
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,8 +19,8 @@ from ...models.transaction import Transaction as TransactionModel
 from ...models.transaction_item import TransactionItem as TransactionItemModel
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
-    PurchaseCategoryRead,
 )
+from ...schemas.purchase_category import PurchaseCategoryRead
 from ...schemas.statistics import (
     PurchaseCategoryStatistics,
     PurchaseCategoryStatisticsItem,
@@ -35,11 +36,26 @@ router = APIRouter(tags=["User Statistics"])
     "/stats/by-purchase-category", response_model=PurchaseCategoryStatistics
 )
 async def get_purchase_category_statistics(
+    *,
     request: Request,
     purchase_categories: Annotated[
         list[PurchaseCategoryModel | PurchaseCategorySchema],
         Depends(get_user_purchase_categories),
     ],
+    before: datetime | None = Query(
+        default=None,
+        description="Get transactions before this date",
+        examples=[datetime.now(UTC)],
+    ),
+    after: datetime | None = Query(
+        default=None,
+        description="Get transactions after this date",
+        examples=[
+            datetime.now(UTC) - timedelta(days=7),
+            datetime.now(UTC) - timedelta(days=30),
+            datetime.now(UTC) - timedelta(days=365),
+        ],
+    ),
     current_user: Annotated[UserSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(async_get_db)],
 ):
@@ -67,6 +83,12 @@ async def get_purchase_category_statistics(
             )
             .group_by(PurchaseCategoryModel.id)
         )
+
+        if before:
+            statement = statement.filter(TransactionModel.timestamp < before)
+        if after:
+            statement = statement.filter(TransactionModel.timestamp > after)
+
         result = await db.execute(statement)
         row = result.fetchone()
         if row:
