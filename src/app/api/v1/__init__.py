@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from .group import router as group_router
 from .group_purchase_category import router as group_purchase_category_router
+from .group_statistics import router as group_statistics_router
 from .group_transaction_items import router as group_transaction_items_router
 from .group_transactions import router as group_transactions_router
 from .group_user import router as group_user_router
@@ -26,3 +27,4 @@ router.include_router(group_purchase_category_router)
 router.include_router(group_transactions_router)
 router.include_router(group_transaction_items_router)
 router.include_router(statistics_router)
+router.include_router(group_statistics_router)

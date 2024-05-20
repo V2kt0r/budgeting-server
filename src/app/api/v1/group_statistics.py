@@ -6,11 +6,11 @@ from sqlalchemy import func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.db.database import async_get_db
+from ...models.links.group_transaction import (
+    GroupTransaction as GroupTransactionModel,
+)
 from ...models.links.transaction_transaction_item import (
     TransactionTransactionItem as TransactionTransactionItemModel,
-)
-from ...models.links.user_transaction import (
-    UserTransaction as UserTransactionModel,
 )
 from ...models.purchase_category import (
     PurchaseCategory as PurchaseCategoryModel,
@@ -18,32 +18,36 @@ from ...models.purchase_category import (
 from ...models.transaction import Currency
 from ...models.transaction import Transaction as TransactionModel
 from ...models.transaction_item import TransactionItem as TransactionItemModel
+from ...schemas.group import Group as GroupSchema
+from ...schemas.group import GroupRead
 from ...schemas.purchase_category import (
     PurchaseCategory as PurchaseCategorySchema,
 )
 from ...schemas.purchase_category import PurchaseCategoryRead
 from ...schemas.statistics import (
+    GroupPurchaseCategoryStatistics,
     PurchaseCategoryStatistics,
     PurchaseCategoryStatisticsItem,
 )
-from ...schemas.user import User as UserSchema
-from ..dependencies import get_current_user
+from .dependencies.group import get_non_deleted_user_group
 from .dependencies.statistics import (
-    get_user_purchase_categories,
+    get_group_purchase_categories,
 )
 
-router = APIRouter(tags=["User Statistics"])
+router = APIRouter(tags=["Group Statistics"])
 
 
 @router.get(
-    "/stats/by-purchase-category", response_model=PurchaseCategoryStatistics
+    "/group/{group_uuid}/stats/by-purchase-category",
+    response_model=PurchaseCategoryStatistics,
 )
-async def get_purchase_category_statistics(
+async def get_group_purchase_category_statistics(
     *,
     request: Request,
+    group_schema: Annotated[GroupSchema, Depends(get_non_deleted_user_group)],
     purchase_categories: Annotated[
         list[PurchaseCategoryModel | PurchaseCategorySchema],
-        Depends(get_user_purchase_categories),
+        Depends(get_group_purchase_categories),
     ],
     currency: Currency = Query(
         default=Currency.HUF,
@@ -64,7 +68,6 @@ async def get_purchase_category_statistics(
             datetime.now(UTC) - timedelta(days=365),
         ],
     ),
-    current_user: Annotated[UserSchema, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(async_get_db)],
 ) -> Any:
     total_count: int = 0
@@ -81,9 +84,9 @@ async def get_purchase_category_statistics(
             .outerjoin(PurchaseCategoryModel)
             .outerjoin(TransactionTransactionItemModel)
             .outerjoin(TransactionModel)
-            .outerjoin(UserTransactionModel)
+            .outerjoin(GroupTransactionModel)
             .filter(
-                UserTransactionModel.user_id == current_user.id,
+                GroupTransactionModel.group_id == group_schema.id,
                 PurchaseCategoryModel.id == purchase_category.id,
                 not_(TransactionModel.is_deleted),
                 not_(TransactionItemModel.is_deleted),
@@ -119,6 +122,9 @@ async def get_purchase_category_statistics(
             )
         )
 
-    return PurchaseCategoryStatistics(
-        total=total, item_count=total_count, items=items
+    return GroupPurchaseCategoryStatistics(
+        total=total,
+        item_count=total_count,
+        items=items,
+        group=GroupRead(**group_schema.model_dump()),
     )
